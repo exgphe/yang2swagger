@@ -68,6 +68,10 @@ public class Main {
     @Option(name = "-authentication", usage="Authentication definition")
     public AuthenticationMechanism authenticationMechanism = AuthenticationMechanism.NONE;
 
+    @Option(name = "-strategy", usage="Use unpacking strategy")
+    public SwaggerGenerator.Strategy strategy = SwaggerGenerator.Strategy.optimizing;
+
+
 
     public enum ElementType {
         DATA, RPC, DATA_AND_RPC;
@@ -124,10 +128,11 @@ public class Main {
         if(useNamespaces)
             pathHandler = pathHandler.useModuleName();
 
-        final SwaggerGenerator generator = new SwaggerGenerator(context, toGenerate)
+        final SwaggerGenerator generator = new SwaggerGenerator(context, toGenerate, strategy)
         		.version(apiVersion)
                 .format(outputFormat).consumes(contentType).produces(contentType)
                 .host("localhost:1234")
+                .basePath("/restconf")
                 .pathHandler(pathHandler)
                 .elements(map(elementType));
 
@@ -143,7 +148,7 @@ public class Main {
         }
 
         generator.appendPostProcessor(new Rfc4080PayloadWrapper());
-        generator.appendPostProcessor(new RemoveUnusedDefinitions());
+//        generator.appendPostProcessor(new RemoveUnusedDefinitions());
 
         generator.generate(new OutputStreamWriter(out));
     }

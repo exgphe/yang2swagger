@@ -58,8 +58,8 @@ public class YamlGenerator {
 //                .appendPostProcessor(new AddSecurityDefinitions().withSecurityDefinition("api_sec", new BasicAuthDefinition()))
                 //and single inheritence model
 //                .appendPostProcessor(new SingleParentInheritenceModel())
-                .appendPostProcessor(new Rfc4080PayloadWrapper())
-                .appendPostProcessor(new RemoveUnusedDefinitions());
+                .appendPostProcessor(new Rfc4080PayloadWrapper());
+//                .appendPostProcessor(new RemoveUnusedDefinitions());
 
 
         generator.generate(new FileWriter(outputName));

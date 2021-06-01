@@ -101,6 +101,10 @@ public class SwaggerGenerator {
      * @param modulesToGenerate modules that will be transformed to swagger API
      */
     public SwaggerGenerator(SchemaContext ctx, Set<org.opendaylight.yangtools.yang.model.api.Module> modulesToGenerate) {
+        this(ctx, modulesToGenerate, Strategy.optimizing);
+    }
+
+    public SwaggerGenerator(SchemaContext ctx, Set<org.opendaylight.yangtools.yang.model.api.Module> modulesToGenerate, Strategy strategy) {
         Objects.requireNonNull(ctx);
         Objects.requireNonNull(modulesToGenerate);
 
@@ -123,7 +127,7 @@ public class SwaggerGenerator {
         moduleUtils = new ModuleUtils(ctx);
         this.moduleNames = modulesToGenerate.stream().map(ModuleIdentifier::getName).collect(Collectors.toSet());
         //assign default strategy
-        strategy(Strategy.optimizing);
+        strategy(strategy);
 
         //no exposed swagger API
         target.info(new Info());
@@ -252,7 +256,7 @@ public class SwaggerGenerator {
         target.produces(produces);
         return this;
     }
-    
+
     /**
      * Add max depth level during walk through module node tree
      * @param maxDepth to which paths should be generated
@@ -261,7 +265,7 @@ public class SwaggerGenerator {
     public SwaggerGenerator maxDepth(int maxDepth) {
     	this.maxDepth = maxDepth;
         return this;
-    }    
+    }
 
     /**
      * Run Swagger generation for configured modules. Write result to target. The file format
