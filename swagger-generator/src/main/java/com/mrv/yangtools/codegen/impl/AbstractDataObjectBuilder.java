@@ -281,8 +281,8 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
 
         if (prop != null) {
             prop.setDescription(desc(node));
+            prop.setRequired(node.getConstraints().isMandatory());
         }
-
         return new Pair(propertyName, prop);
     }
 
