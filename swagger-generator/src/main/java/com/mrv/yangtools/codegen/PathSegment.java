@@ -170,7 +170,6 @@ public class PathSegment implements Iterable<PathSegment> {
                                     .description("Id of " + node.getQName().getLocalName())
                                     .property(converter.convert(kN.getType(), kN));
                             }
-
                             return param;
                         })
                         .collect(Collectors.toList());

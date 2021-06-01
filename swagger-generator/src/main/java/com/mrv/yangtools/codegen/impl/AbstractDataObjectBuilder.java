@@ -49,16 +49,16 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
     private final HashMap<DataNodeContainer, String> orgNames;
 
     protected final static Function<DataNodeContainer, Set<AugmentationSchema>> augmentations = node -> {
-        if(node instanceof AugmentationTarget) {
+        if (node instanceof AugmentationTarget) {
             Set<AugmentationSchema> res = ((AugmentationTarget) node).getAvailableAugmentations();
-            if(res != null) return res;
+            if (res != null) return res;
         }
         return Collections.emptySet();
     };
 
     protected final static Predicate<DataNodeContainer> isAugmented = n -> !augmentations.apply(n).isEmpty();
 
-    protected final Predicate<DataNodeContainer> isTreeAugmented = n ->  n != null && (isAugmented.test(n) || n.getChildNodes().stream()
+    protected final Predicate<DataNodeContainer> isTreeAugmented = n -> n != null && (isAugmented.test(n) || n.getChildNodes().stream()
             .filter(c -> c instanceof DataNodeContainer)
             .anyMatch(c -> this.isTreeAugmented.test((DataNodeContainer) c)));
 
@@ -75,6 +75,7 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
 
     /**
      * Get definition id for node. Prerequisite is to have node's module traversed {@link UnpackingDataObjectsBuilder#processModule(Module)}.
+     *
      * @param node node
      * @return id
      */
@@ -85,6 +86,7 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
 
     /**
      * Traverse model to collect all verbs from YANG nodes that will constitute Swagger models
+     *
      * @param module to traverse
      */
     @Override
@@ -95,17 +97,17 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
 
         log.debug("processing rpcs defined in {}", module.getName());
         module.getRpcs().forEach(r -> {
-            if(r.getInput() != null)
-                processNode(r.getInput(), null,  cache);
-            if(r.getOutput() != null)
+            if (r.getInput() != null)
+                processNode(r.getInput(), null, cache);
+            if (r.getOutput() != null)
                 processNode(new RpcContainerSchemaNode(r), null, cache);
         });
         log.debug("processing augmentations defined in {}", module.getName());
         module.getAugmentations().forEach(r -> processNode(r, cache));
     }
 
-    protected  void processNode(ContainerSchemaNode container, String proposedName, Set<String> cache) {
-        if(container == null) return;
+    protected void processNode(ContainerSchemaNode container, String proposedName, Set<String> cache) {
+        if (container == null) return;
         String name = generateName(container, null, cache);
         names.put(container, name);
 
@@ -115,7 +117,7 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
     protected void processNode(DataNodeContainer container, Set<String> cache) {
         log.debug("DataNodeContainer string: {}", container.toString());
         DataNodeHelper.stream(container).filter(n -> n instanceof ContainerSchemaNode || n instanceof ListSchemaNode)
-                .filter(n -> ! names.containsKey(n))
+                .filter(n -> !names.containsKey(n))
                 .forEach(n -> {
                     String name = generateName(n, null, cache);
                     names.put(n, name);
@@ -126,10 +128,10 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
         DataNodeContainer result = null;
         DataNodeContainer tmp = node;
         do {
-            if(tmp instanceof DerivableSchemaNode) {
+            if (tmp instanceof DerivableSchemaNode) {
                 com.google.common.base.Optional<? extends SchemaNode> original = ((DerivableSchemaNode) tmp).getOriginal();
                 tmp = null;
-                if(original.isPresent() && original.get() instanceof DataNodeContainer) {
+                if (original.isPresent() && original.get() instanceof DataNodeContainer) {
                     result = (DataNodeContainer) original.get();
                     tmp = result;
                 }
@@ -142,15 +144,15 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
     }
 
     protected String generateName(SchemaNode node, String proposedName, Set<String> _cache) {
-        if(node instanceof DataNodeContainer) {
+        if (node instanceof DataNodeContainer) {
             DataNodeContainer original = null;
-            if(! isTreeAugmented.test((DataNodeContainer) node)) {
+            if (!isTreeAugmented.test((DataNodeContainer) node)) {
                 original = original((DataNodeContainer) node);
             }
 
-            if(original != null) {
-                if(! orgNames.containsKey(original)) {
-                    String name = generateName((SchemaNode)original, proposedName, _cache);
+            if (original != null) {
+                if (!orgNames.containsKey(original)) {
+                    String name = generateName((SchemaNode) original, proposedName, _cache);
                     orgNames.put(original, name);
                 } else {
                     log.debug("reusing original definition to get name for {}", node.getQName());
@@ -159,20 +161,20 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
                 return orgNames.get(original);
             } else {
                 DataNodeContainer t = (DataNodeContainer) node;
-                if(orgNames.containsKey(t)) {
+                if (orgNames.containsKey(t)) {
                     return orgNames.get(t);
                 }
             }
         }
 
-        String modulePrefix =  nameToPackageSegment(moduleUtils.toModuleName(node.getQName()));
-        if(proposedName != null) {
+        String modulePrefix = nameToPackageSegment(moduleUtils.toModuleName(node.getQName()));
+        if (proposedName != null) {
             return modulePrefix + "." + getClassName(proposedName);
         }
 
         String name = getClassName(node.getQName());
         final Iterable<QName> path = node.getPath().getParent().getPathFromRoot();
-        if(path == null || !path.iterator().hasNext()) {
+        if (path == null || !path.iterator().hasNext()) {
             log.debug("generatedName: {}", modulePrefix + "." + name);
             return modulePrefix + "." + name;
         }
@@ -183,6 +185,7 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
 
     /**
      * Convert leaf-list to swagger property
+     *
      * @param llN leaf-list
      * @return property
      */
@@ -192,6 +195,7 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
 
     /**
      * Convert leaf to swagger property
+     *
      * @param lN leaf
      * @return property
      */
@@ -205,7 +209,7 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
 
 
     protected Map<String, Property> structure(DataNodeContainer node) {
-        return structure(node,  x -> true, x -> true);
+        return structure(node, x -> true, x -> true);
     }
 
 
@@ -247,6 +251,14 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
         if (node instanceof LeafListSchemaNode) {
             LeafListSchemaNode ll = (LeafListSchemaNode) node;
             prop = new ArrayProperty(getPropertyByType(ll));
+            if (node.getConstraints() != null) {
+                if (node.getConstraints().getMaxElements() != null) {
+                    ((ArrayProperty) prop).setMaxItems(node.getConstraints().getMaxElements());
+                }
+                if (node.getConstraints().getMinElements() != null) {
+                    ((ArrayProperty) prop).setMinItems(node.getConstraints().getMinElements());
+                }
+            }
         } else if (node instanceof LeafSchemaNode) {
             LeafSchemaNode lN = (LeafSchemaNode) node;
             prop = getPropertyByType(lN);
@@ -254,6 +266,14 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
             prop = refOrStructure((ContainerSchemaNode) node);
         } else if (node instanceof ListSchemaNode) {
             prop = new ArrayProperty().items(refOrStructure((ListSchemaNode) node));
+            if (node.getConstraints() != null) {
+                if (node.getConstraints().getMaxElements() != null) {
+                    ((ArrayProperty) prop).setMaxItems(node.getConstraints().getMaxElements());
+                }
+                if (node.getConstraints().getMinElements() != null) {
+                    ((ArrayProperty) prop).setMinItems(node.getConstraints().getMinElements());
+                }
+            }
         } else if (node instanceof AnyXmlSchemaNode) {
             log.warn("generating swagger string property for any schema type for {}", node.getQName());
             prop = new StringProperty();
@@ -269,7 +289,7 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
     public String getPropertyName(DataSchemaNode node) {
         //return BindingMapping.getPropertyName(node.getQName().getLocalName());
         String name = node.getQName().getLocalName();
-        if(node.isAugmenting()) {
+        if (node.isAugmenting()) {
             name = moduleName(node) + ":" + name;
         }
         return name;
@@ -291,9 +311,10 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
 
     /**
      * Add model to referenced swagger for given node. All related models are added as well if needed.
-     * @param node for which build a node
+     *
+     * @param node      for which build a node
      * @param modelName model name
-     * @param <T> type of the node
+     * @param <T>       type of the node
      */
     @Override
     public <T extends SchemaNode & DataNodeContainer> void addModel(T node, String modelName) {
@@ -302,8 +323,8 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
         Model model = build(node);
 
 
-        if(swagger.getDefinitions() != null && swagger.getDefinitions().containsKey(modelName)) {
-            if(model.equals(swagger.getDefinitions().get(modelName))) {
+        if (swagger.getDefinitions() != null && swagger.getDefinitions().containsKey(modelName)) {
+            if (model.equals(swagger.getDefinitions().get(modelName))) {
                 return;
             }
             log.warn("Overriding model {} with node {}", modelName, node.getQName());
@@ -320,14 +341,14 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
     @Override
     public String addModel(EnumTypeDefinition enumType) {
         QName qName = enumType.getQName();
-        
+
         //inline enumerations are a special case that needs extra enumeration
-        if(qName.getLocalName().equals("enumeration") && enumType.getBaseType() == null) {
-        	qName = QName.create(qName, enumType.getPath().getParent().getLastComponent().getLocalName() + "-" + qName.getLocalName());
+        if (qName.getLocalName().equals("enumeration") && enumType.getBaseType() == null) {
+            qName = QName.create(qName, enumType.getPath().getParent().getLastComponent().getLocalName() + "-" + qName.getLocalName());
         }
 
-        if(! generatedEnums.containsKey(qName)) {
-            log.debug("generating enum model for {}",  qName);
+        if (!generatedEnums.containsKey(qName)) {
+            log.debug("generating enum model for {}", qName);
             String name = getName(qName);
             ModelImpl enumModel = build(enumType, qName);
             swagger.addDefinition(name, enumModel);
@@ -348,13 +369,13 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
     }
 
     protected String getName(QName qname) {
-        String modulePrefix =  nameToPackageSegment(moduleUtils.toModuleName(qname));
+        String modulePrefix = nameToPackageSegment(moduleUtils.toModuleName(qname));
         String name = modulePrefix + "." + getClassName(qname);
 
         String candidate = name;
 
         int idx = 1;
-        while(generatedEnums.values().contains(DEF_PREFIX + candidate)) {
+        while (generatedEnums.values().contains(DEF_PREFIX + candidate)) {
             log.warn("Name {} already defined for enum. generating random postfix", candidate);
             candidate = name + idx;
         }
@@ -362,7 +383,7 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
     }
 
     protected String desc(DocumentedNode node) {
-        return  node.getReference() == null ? node.getDescription() :
+        return node.getReference() == null ? node.getDescription() :
                 node.getDescription() + " REF:" + node.getReference();
     }
 
