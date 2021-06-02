@@ -10,11 +10,10 @@
 package com.mrv.yangtools.codegen.impl.postprocessor;
 
 import io.swagger.models.*;
-import io.swagger.models.parameters.BodyParameter;
-import io.swagger.models.parameters.Parameter;
-import io.swagger.models.properties.ArrayProperty;
-import io.swagger.models.properties.Property;
-import io.swagger.models.properties.RefProperty;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.Operation;
+import io.swagger.v3.oas.models.parameters.Parameter;
+import io.swagger.v3.oas.models.responses.ApiResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,15 +28,15 @@ import java.util.stream.Collectors;
  * This implementation is simple and limited only to the type definitions that are aggregators of references.
  * @author bartosz.michalik@amartus.com
  */
-public abstract class ReplaceDefinitionsProcessor implements Consumer<Swagger> {
+public abstract class ReplaceDefinitionsProcessor implements Consumer<OpenAPI> {
     private final Logger log = LoggerFactory.getLogger(ReplaceDefinitionsProcessor.class);
     @Override
-    public void accept(Swagger target) {
+    public void accept(OpenAPI target) {
         Map<String, String> replacements = prepareForReplacement(target);
 
         log.debug("{} replacement found for definitions", replacements.size());
         log.trace("replacing paths");
-        target.getPaths().values().stream().flatMap(p -> p.getOperations().stream())
+        target.getPaths().values().stream().flatMap(p -> p.readOperations().stream())
                 .forEach(o -> fixOperation(o, replacements));
 
         target.getDefinitions().forEach((key, value) -> fixModel(key, value, replacements));
@@ -136,7 +135,7 @@ public abstract class ReplaceDefinitionsProcessor implements Consumer<Swagger> {
 
     }
 
-    private void fixResponse(Response r, Map<String, String> replacements) {
+    private void fixResponse(ApiResponse r, Map<String, String> replacements) {
         if(! (r.getSchema() instanceof RefProperty)) return;
         RefProperty schema = (RefProperty) r.getSchema();
         if(replacements.containsKey(schema.getSimpleRef())) {

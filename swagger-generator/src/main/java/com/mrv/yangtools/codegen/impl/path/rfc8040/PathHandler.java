@@ -43,7 +43,7 @@ class PathHandler extends AbstractPathHandler {
         final Path path = operations(cN, pathCtx);
         RestconfPathPrinter printer = new RestconfPathPrinter(pathCtx, useModuleName);
 
-        swagger.path(data + printer.path(), path);
+        openAPI.path(data + printer.path(), path);
     }
 
     @Override
@@ -51,7 +51,7 @@ class PathHandler extends AbstractPathHandler {
         final Path path = operations(lN, pathCtx);
 
         RestconfPathPrinter printer = new RestconfPathPrinter(pathCtx, useModuleName);
-        swagger.path(data + printer.path(), path);
+        openAPI.path(data + printer.path(), path);
 
         if(!fullCrud || pathCtx.isReadOnly()) return;
 
@@ -61,7 +61,7 @@ class PathHandler extends AbstractPathHandler {
 
 
         RestconfPathPrinter postPrinter = new RestconfPathPrinter(pathCtx, useModuleName, true);
-        swagger.path(data + postPrinter.path(), list);
+        openAPI.path(data + postPrinter.path(), list);
     }
 
     @Override

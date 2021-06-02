@@ -14,6 +14,9 @@ import io.swagger.models.ComposedModel;
 import io.swagger.models.Model;
 import io.swagger.models.RefModel;
 import io.swagger.models.Swagger;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.media.ComposedSchema;
+import io.swagger.v3.oas.models.media.Schema;
 
 import java.util.List;
 import java.util.Map;
@@ -21,25 +24,26 @@ import java.util.stream.Collectors;
 
 /**
  * Replace empty definitions with definition parent
+ *
  * @author bartosz.michalik@amartus.com
  */
-public class ReplaceEmptyWithParent extends  ReplaceDefinitionsProcessor {
+public class ReplaceEmptyWithParent extends ReplaceDefinitionsProcessor {
 
     @Override
-    protected Map<String, String> prepareForReplacement(Swagger swagger) {
-        return swagger.getDefinitions().entrySet()
+    protected Map<String, String> prepareForReplacement(OpenAPI openAPI) {
+        return openAPI.getComponents().getSchemas().entrySet()
                 .stream().filter(e -> {
-            Model model = e.getValue();
-            if (model instanceof ComposedModel) {
-                List<Model> allOf = ((ComposedModel) model).getAllOf();
-                return allOf.size() == 1 && allOf.get(0) instanceof RefModel;
-            }
-            return false;
-        }).map(e -> {
-            RefModel ref = (RefModel) ((ComposedModel) e.getValue()).getAllOf().get(0);
+                    Schema model = e.getValue();
+                    if (model instanceof ComposedSchema) {
+                        List<Schema> allOf = ((ComposedSchema) model).getAllOf();
+                        return allOf.size() == 1 && allOf.get(0).get$ref() != null;
+                    }
+                    return false;
+                }).map(e -> {
+                    Schema ref = ((ComposedSchema) e.getValue()).getAllOf().get(0);
 
-            return new Tuple<>(e.getKey(), ref.getSimpleRef());
+                    return new Tuple<>(e.getKey(), ref.get$ref());
 
-        }).collect(Collectors.toMap(Tuple::first, Tuple::second));
+                }).collect(Collectors.toMap(Tuple::first, Tuple::second));
     }
 }

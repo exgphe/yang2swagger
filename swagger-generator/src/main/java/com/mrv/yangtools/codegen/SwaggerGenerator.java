@@ -26,6 +26,8 @@ import io.swagger.models.Info;
 import io.swagger.models.RefModel;
 import io.swagger.models.Response;
 import io.swagger.models.Swagger;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
 import org.opendaylight.yangtools.yang.model.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,10 +57,10 @@ public class SwaggerGenerator {
     private static final Logger log = LoggerFactory.getLogger(SwaggerGenerator.class);
     private final SchemaContext ctx;
     private final Set<org.opendaylight.yangtools.yang.model.api.Module> modules;
-    private final Swagger target;
+    private final OpenAPI target;
     private final Set<String> moduleNames;
     private final ModuleUtils moduleUtils;
-    private Consumer<Swagger> postprocessor;
+    private Consumer<OpenAPI> postprocessor;
     private DataObjectBuilder dataObjectsBuilder;
     private ObjectMapper mapper;
     private int maxDepth = Integer.MAX_VALUE;
@@ -126,7 +128,7 @@ public class SwaggerGenerator {
         }
         this.ctx = ctx;
         this.modules = modulesToGenerate;
-        target = new Swagger();
+        target = new OpenAPI();
         converter = new AnnotatingTypeConverter(ctx);
         moduleUtils = new ModuleUtils(ctx);
         this.moduleNames = modulesToGenerate.stream().map(ModuleIdentifier::getName).collect(Collectors.toSet());

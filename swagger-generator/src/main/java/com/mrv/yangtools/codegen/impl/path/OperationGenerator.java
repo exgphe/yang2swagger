@@ -13,14 +13,16 @@ package com.mrv.yangtools.codegen.impl.path;
 
 import com.mrv.yangtools.codegen.DataObjectRepo;
 import com.mrv.yangtools.codegen.PathSegment;
-import io.swagger.models.Operation;
-import io.swagger.models.Response;
+import io.swagger.v3.oas.models.Operation;
+import io.swagger.v3.oas.models.responses.ApiResponse;
+import io.swagger.v3.oas.models.responses.ApiResponses;
 import org.opendaylight.yangtools.yang.model.api.DataNodeContainer;
 import org.opendaylight.yangtools.yang.model.api.DataSchemaNode;
 import org.opendaylight.yangtools.yang.model.api.SchemaNode;
 
 /**
  * Simple command that generates operation
+ *
  * @author cmurch@mrv.com
  * @author bartosz.michalik@amartus.com
  */
@@ -38,6 +40,7 @@ public abstract class OperationGenerator<T extends SchemaNode & DataNodeContaine
 
     /**
      * Create operation for node.
+     *
      * @param node YANG node
      * @return Swagger operation
      */
@@ -55,11 +58,13 @@ public abstract class OperationGenerator<T extends SchemaNode & DataNodeContaine
 
     /**
      * Default empty operation that defines error response only
+     *
      * @return basic operation with 400 response pre-defined
      */
     protected Operation defaultOperation() {
-        final Operation operation = new io.swagger.models.Operation();
-        operation.response(400, new Response().description("Internal error"));
+        final Operation operation = new Operation();
+        if (operation.getResponses() == null) operation.setResponses(new ApiResponses());
+        operation.getResponses().addApiResponse("400", new ApiResponse().description("Internal error"));
         operation.setParameters(path.params());
         return operation;
     }

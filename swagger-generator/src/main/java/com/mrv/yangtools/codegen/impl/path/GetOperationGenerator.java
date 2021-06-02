@@ -13,9 +13,10 @@ package com.mrv.yangtools.codegen.impl.path;
 
 import com.mrv.yangtools.codegen.DataObjectRepo;
 import com.mrv.yangtools.codegen.PathSegment;
-import io.swagger.models.Operation;
-import io.swagger.models.Response;
-import io.swagger.models.properties.RefProperty;
+import io.swagger.v3.oas.models.Operation;
+import io.swagger.v3.oas.models.media.Content;
+import io.swagger.v3.oas.models.responses.ApiResponse;
+import io.swagger.v3.oas.models.responses.ApiResponses;
 import org.opendaylight.yangtools.yang.model.api.DataSchemaNode;
 
 /**
@@ -34,7 +35,10 @@ public class GetOperationGenerator extends OperationGenerator {
         String description = node.getDescription() == null ? "returns " + getName(node) :
                 node.getDescription();
         get.description(description);
-        get.response(200, new Response()
+        if (get.getResponses() == null) get.setResponses(new ApiResponses());
+
+        get.getResponses().addApiResponse("200", new ApiResponse()
+                .content(new Content().addMediaType())
                 .schema(new RefProperty(getDefinitionId(node)))
                 .description(getName(node)));
         return get;

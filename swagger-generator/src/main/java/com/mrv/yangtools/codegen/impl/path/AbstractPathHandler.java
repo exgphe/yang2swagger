@@ -4,9 +4,16 @@ import com.mrv.yangtools.codegen.*;
 import com.mrv.yangtools.codegen.impl.RpcContainerSchemaNode;
 
 import io.swagger.models.*;
-import io.swagger.models.parameters.BodyParameter;
-import io.swagger.models.properties.RefProperty;
 
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.Operation;
+import io.swagger.v3.oas.models.PathItem;
+import io.swagger.v3.oas.models.media.Content;
+import io.swagger.v3.oas.models.media.MediaType;
+import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.parameters.RequestBody;
+import io.swagger.v3.oas.models.responses.ApiResponse;
+import io.swagger.v3.oas.models.responses.ApiResponses;
 import org.opendaylight.yangtools.yang.model.api.ContainerSchemaNode;
 import org.opendaylight.yangtools.yang.model.api.DataSchemaNode;
 import org.opendaylight.yangtools.yang.model.api.RpcDefinition;
@@ -19,7 +26,7 @@ import java.util.stream.Collectors;
  * @author bartosz.michalik@amartus.com
  */
 public abstract class AbstractPathHandler implements PathHandler {
-    protected final Swagger swagger;
+    protected final OpenAPI openAPI;
     protected final SchemaContext ctx;
     protected final org.opendaylight.yangtools.yang.model.api.Module module;
     protected boolean useModuleName;
@@ -27,10 +34,10 @@ public abstract class AbstractPathHandler implements PathHandler {
     protected String operations;
     protected final DataObjectBuilder dataObjectBuilder;
     protected final Set<TagGenerator> tagGenerators;
-    protected final  boolean fullCrud;
+    protected final boolean fullCrud;
 
-    protected AbstractPathHandler(SchemaContext ctx, org.opendaylight.yangtools.yang.model.api.Module modules, Swagger target, DataObjectBuilder objBuilder, Set<TagGenerator> generators, boolean fullCrud) {
-        this.swagger = target;
+    protected AbstractPathHandler(SchemaContext ctx, org.opendaylight.yangtools.yang.model.api.Module modules, OpenAPI target, DataObjectBuilder objBuilder, Set<TagGenerator> generators, boolean fullCrud) {
+        this.openAPI = target;
         this.ctx = ctx;
         this.module = modules;
         data = "/data/";
@@ -52,46 +59,48 @@ public abstract class AbstractPathHandler implements PathHandler {
         ContainerSchemaNode input = rcp.getInput();
         ContainerSchemaNode output = rcp.getOutput();
         ContainerSchemaNode root = new RpcContainerSchemaNode(rcp);
-        
+
         input = input.getChildNodes().isEmpty() ? null : input;
         output = output.getChildNodes().isEmpty() ? null : output;
-    	
+
         PathPrinter printer = getPrinter(pathCtx);
 
         Operation post = defaultOperation(pathCtx);
 
-        post.tag(module.getName());
-        if(input != null) {
+        post.addTagsItem(module.getName());
+        if (input != null) {
             dataObjectBuilder.addModel(input);
 
-            ModelImpl inputModel = new ModelImpl();
-            inputModel.addProperty("input", new RefProperty(dataObjectBuilder.getDefinitionId(input)));
+            Schema<Object> inputModel = new Schema<>();
+            inputModel.set$ref(dataObjectBuilder.getDefinitionId(input));
 
             post.summary("operates on " + dataObjectBuilder.getName(root));
             post.description("operates on " + dataObjectBuilder.getName(root));
-            post.parameter(new BodyParameter()
-                    .name(dataObjectBuilder.getName(input) + ".body-param")
-                    .schema(inputModel)
+            post.requestBody(new RequestBody()
+                    .content(new Content().addMediaType("application/yang-data+json", new MediaType()
+                            .schema(inputModel)))
                     .description(input.getDescription())
             );
         }
 
-        if(output != null) {
+        if (output != null) {
             String description = output.getDescription();
-            if(description == null) {
+            if (description == null) {
                 description = "Correct response";
             }
 
-            RefProperty refProperty = new RefProperty();
+            Schema<Object> refProperty = new Schema<>();
             refProperty.set$ref(dataObjectBuilder.getDefinitionId(root));
-            
+
             dataObjectBuilder.addModel(root);
-            post.response(200, new Response()
-                    .schema(refProperty)
+            if (post.getResponses() == null) post.setResponses(new ApiResponses());
+            post.getResponses().addApiResponse("200", new ApiResponse()
+                    .content(new Content().addMediaType("application/yang-data+json", new MediaType().schema(refProperty)))
                     .description(description));
         }
-        post.response(201, new Response().description("No response")); //no output body
-        swagger.path(operations + printer.path(), new Path().post(post));
+        if (post.getResponses() == null) post.setResponses(new ApiResponses());
+        post.getResponses().addApiResponse("201", new ApiResponse().description("No response")); //no output body
+        openAPI.path(operations + printer.path(), new PathItem().post(post));
     }
 
     protected abstract PathPrinter getPrinter(PathSegment pathCtx);
@@ -99,14 +108,14 @@ public abstract class AbstractPathHandler implements PathHandler {
 
     protected abstract boolean generateModifyOperations(PathSegment pathCtx);
 
-    protected Path operations(DataSchemaNode node, PathSegment pathCtx) {
-        final Path path = new Path();
+    protected PathItem operations(DataSchemaNode node, PathSegment pathCtx) {
+        final PathItem path = new PathItem();
         List<String> tags = tags(pathCtx);
 
         path.get(new GetOperationGenerator(pathCtx, dataObjectBuilder).execute(node).tags(tags));
-        if(generateModifyOperations(pathCtx)) {
+        if (generateModifyOperations(pathCtx)) {
             path.put(new PutOperationGenerator(pathCtx, dataObjectBuilder).execute(node).tags(tags));
-            if(!pathCtx.forList()) {
+            if (!pathCtx.forList()) {
                 path.post(new PostOperationGenerator(pathCtx, dataObjectBuilder, false).execute(node).tags(tags));
             }
             path.delete(new DeleteOperationGenerator(pathCtx, dataObjectBuilder).execute(node).tags(tags));

@@ -17,6 +17,7 @@ import com.mrv.yangtools.codegen.TagGenerator;
 import com.mrv.yangtools.codegen.impl.path.*;
 import io.swagger.models.Path;
 import io.swagger.models.Swagger;
+import io.swagger.v3.oas.models.PathItem;
 import org.opendaylight.yangtools.yang.model.api.*;
 
 import java.util.Set;
@@ -45,12 +46,12 @@ class ODLPathHandler extends AbstractPathHandler {
     public void path(ContainerSchemaNode cN, PathSegment pathCtx) {
         final Path operationalPath = operationalOperations(cN, pathCtx);
         ODLRestconfPathPrinter operationalPathPrinter = new ODLRestconfPathPrinter(pathCtx, useModuleName);
-        swagger.path(operational + operationalPathPrinter.path(), operationalPath);
+        openAPI.path(operational + operationalPathPrinter.path(), operationalPath);
 
         if (!pathCtx.isReadOnly()) {
-            final Path configPath = operations(cN, pathCtx);
+            final PathItem configPath = operations(cN, pathCtx);
             ODLRestconfPathPrinter configPathPrinter = new ODLRestconfPathPrinter(pathCtx, useModuleName);
-            swagger.path(data + configPathPrinter.path(), configPath);
+            openAPI.path(data + configPathPrinter.path(), configPath);
         }
     }
 
@@ -64,12 +65,12 @@ class ODLPathHandler extends AbstractPathHandler {
     public void path(ListSchemaNode lN, PathSegment pathCtx) {
         final Path operationalPath = operationalOperations(lN, pathCtx);
         ODLRestconfPathPrinter operationalPathPrinter = new ODLRestconfPathPrinter(pathCtx, useModuleName);
-        swagger.path(operational + operationalPathPrinter.path(), operationalPath);
+        openAPI.path(operational + operationalPathPrinter.path(), operationalPath);
 
         if (!pathCtx.isReadOnly()) {
             final Path configPath = operations(lN, pathCtx);
             ODLRestconfPathPrinter configPathPrinter = new ODLRestconfPathPrinter(pathCtx, useModuleName);
-            swagger.path(data + configPathPrinter.path(), configPath);
+            openAPI.path(data + configPathPrinter.path(), configPath);
 
             if(fullCrud) {
                 //referencing list path
@@ -78,7 +79,7 @@ class ODLPathHandler extends AbstractPathHandler {
 
 
                 ODLRestconfPathPrinter postPrinter = new ODLRestconfPathPrinter(pathCtx, useModuleName, true);
-                swagger.path(data + postPrinter.path(), list);
+                openAPI.path(data + postPrinter.path(), list);
             }
         }
     }

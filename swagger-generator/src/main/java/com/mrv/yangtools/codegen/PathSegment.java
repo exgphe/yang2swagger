@@ -12,8 +12,8 @@
 package com.mrv.yangtools.codegen;
 
 import com.mrv.yangtools.codegen.impl.TypeConverter;
-import io.swagger.models.parameters.Parameter;
-import io.swagger.models.parameters.PathParameter;
+import io.swagger.v3.oas.models.parameters.Parameter;
+import io.swagger.v3.oas.models.parameters.PathParameter;
 import org.opendaylight.yangtools.yang.common.QName;
 import org.opendaylight.yangtools.yang.model.api.LeafSchemaNode;
 import org.opendaylight.yangtools.yang.model.api.ListSchemaNode;
@@ -155,7 +155,7 @@ public class PathSegment implements Iterable<PathSegment> {
 
                             final String name = generateName(k, existingNames);
 
-                            final PathParameter param = new PathParameter()
+                            final PathParameter param = (PathParameter) new PathParameter()
                                     .name(name);
 
                             final Optional<LeafSchemaNode> keyNode = node.getChildNodes().stream()
@@ -168,7 +168,7 @@ public class PathSegment implements Iterable<PathSegment> {
                                 final LeafSchemaNode kN = keyNode.get();
                                 param
                                     .description("Id of " + node.getQName().getLocalName())
-                                    .property(converter.convert(kN.getType(), kN));
+                                    .schema(converter.convert(kN.getType(), kN));
                             }
                             return param;
                         })
@@ -225,7 +225,7 @@ public class PathSegment implements Iterable<PathSegment> {
         return StreamSupport.stream(this.spliterator(), false);
     }
 
-    private static PathSegment NULL = new PathSegment() {
+    private static final PathSegment NULL = new PathSegment() {
 
         @Override
         public PathSegment drop() {

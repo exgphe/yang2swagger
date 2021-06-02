@@ -13,6 +13,7 @@ package com.mrv.yangtools.codegen.impl;
 
 import com.mrv.yangtools.codegen.DataObjectBuilder;
 import io.swagger.models.properties.*;
+import io.swagger.v3.oas.models.media.*;
 import org.opendaylight.yangtools.yang.model.api.SchemaContext;
 import org.opendaylight.yangtools.yang.model.api.SchemaNode;
 import org.opendaylight.yangtools.yang.model.api.TypeDefinition;
@@ -22,6 +23,7 @@ import org.opendaylight.yangtools.yang.model.util.type.BaseTypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
 import java.util.stream.Collectors;
 
 /**
@@ -49,7 +51,7 @@ public class TypeConverter {
      * @return property
      */
     @SuppressWarnings("ConstantConditions")
-    public Property convert(TypeDefinition<?> type, SchemaNode parent) {
+    public Schema convert(TypeDefinition<?> type, SchemaNode parent) {
         TypeDefinition<?> baseType = type.getBaseType();
         if (baseType == null) baseType = type;
 
@@ -59,11 +61,11 @@ public class TypeConverter {
         }
 
         if (baseType instanceof BooleanTypeDefinition) {
-            return new BooleanProperty();
+            return new BooleanSchema();
         }
 
         if (baseType instanceof DecimalTypeDefinition) {
-            DecimalProperty decimalProperty = new DecimalProperty();
+            NumberSchema decimalProperty = new NumberSchema();
             DecimalTypeDefinition decimalTypeDefinition = ((DecimalTypeDefinition) baseType);
             if (decimalTypeDefinition.getRangeConstraints() != null) {
                 Double currentMax = null;
@@ -81,10 +83,10 @@ public class TypeConverter {
                     }
                 }
                 if (currentMax != null) {
-                    decimalProperty.setMaximum(currentMax);
+                    decimalProperty.setMaximum(BigDecimal.valueOf(currentMax));
                 }
                 if (currentMin != null) {
-                    decimalProperty.setMinimum(currentMin);
+                    decimalProperty.setMinimum(BigDecimal.valueOf(currentMin));
                 }
             }
             return decimalProperty;
@@ -92,9 +94,9 @@ public class TypeConverter {
 
         if (baseType instanceof IntegerTypeDefinition || baseType instanceof UnsignedIntegerTypeDefinition) {
             //TODO [bmi] how to map int8 type ???
-            BaseIntegerProperty integer = new IntegerProperty();
+            IntegerSchema integer = new IntegerSchema();
             if (BaseTypes.isInt64(baseType) || BaseTypes.isUint32(baseType)) {
-                integer = new LongProperty();
+                integer.setFormat("int64");
             }
             if (baseType instanceof IntegerTypeDefinition) {
                 IntegerTypeDefinition integerTypeDefinition = ((IntegerTypeDefinition) baseType);
@@ -114,10 +116,10 @@ public class TypeConverter {
                         }
                     }
                     if (currentMax != null) {
-                        integer.setMaximum(currentMax);
+                        integer.setMaximum(BigDecimal.valueOf(currentMax));
                     }
                     if (currentMin != null) {
-                        integer.setMinimum(currentMin);
+                        integer.setMinimum(BigDecimal.valueOf(currentMin));
                     }
                 }
             } else if (baseType instanceof UnsignedIntegerTypeDefinition) {
@@ -138,10 +140,10 @@ public class TypeConverter {
                         }
                     }
                     if (currentMax != null) {
-                        integer.setMaximum(currentMax);
+                        integer.setMaximum(BigDecimal.valueOf(currentMax));
                     }
                     if (currentMin != null) {
-                        integer.setMinimum(currentMin);
+                        integer.setMinimum(BigDecimal.valueOf(currentMin));
                     }
                 }
             }
@@ -152,12 +154,12 @@ public class TypeConverter {
         if (e != null) {
             if (enumToModel()) {
                 String refString = dataObjectBuilder.addModel(e);
-                return new RefProperty(refString);
+                return new Schema<>().$ref(refString);
             }
         }
         if (type instanceof StringTypeDefinition) {
             StringTypeDefinition stringType = (StringTypeDefinition) type;
-            StringProperty string = new StringProperty();
+            StringSchema string = new StringSchema();
             if (stringType.getPatternConstraints() != null && !stringType.getPatternConstraints().isEmpty()) {
                 if (stringType.getPatternConstraints().size() == 1) {
                     string.setPattern(stringType.getPatternConstraints().get(0).getRegularExpression());
@@ -179,7 +181,7 @@ public class TypeConverter {
         }
         if (type instanceof BinaryTypeDefinition) {
             BinaryTypeDefinition binaryType = (BinaryTypeDefinition) type;
-            BinaryProperty binary = new BinaryProperty();
+            BinarySchema binary = new BinarySchema();
             if (binaryType.getLengthConstraints() != null) {
                 for (LengthConstraint lengthConstraint : binaryType.getLengthConstraints()) {
                     if (lengthConstraint.getMax() != null) {
@@ -195,19 +197,11 @@ public class TypeConverter {
 
         if (type instanceof UnionTypeDefinition) {
             UnionTypeDefinition unionTypeDefinition = (UnionTypeDefinition) type;
-            boolean isNumber = true;
-            for (TypeDefinition<?> unionTypeDefinitionType : unionTypeDefinition.getTypes()) {
-                if (unionTypeDefinitionType instanceof IntegerTypeDefinition || unionTypeDefinitionType instanceof UnsignedIntegerTypeDefinition || unionTypeDefinitionType instanceof DecimalTypeDefinition) {
-                    continue;
-                }
-                isNumber = false;
-                break;
-            }
-            if (isNumber && !unionTypeDefinition.getTypes().isEmpty()) {
-                return convert(unionTypeDefinition.getTypes().get(0), parent);
-            }
+            return new ComposedSchema().oneOf(
+                    unionTypeDefinition.getTypes().stream().map(t -> convert(t, parent)).collect(Collectors.toList())
+            );
         }
-        return new StringProperty();
+        return new StringSchema();
     }
 
     /**

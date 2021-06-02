@@ -273,7 +273,7 @@ public class OptimizingDataObjectBuilder extends AbstractDataObjectBuilder {
         Model model = fromContainer(augmentation);
         final Model toCheck = model;
 
-        String existingId = swagger.getDefinitions().entrySet().stream().filter(e -> e.getValue().equals(toCheck)).map(Map.Entry::getKey)
+        String existingId = openAPI.getDefinitions().entrySet().stream().filter(e -> e.getValue().equals(toCheck)).map(Map.Entry::getKey)
                 .findFirst().orElse(null);
 
         if(existingId != null) {
@@ -347,7 +347,7 @@ public class OptimizingDataObjectBuilder extends AbstractDataObjectBuilder {
                 Map<String, String> prop = (Map<String, String>) m.getVendorExtensions().getOrDefault("x-augmentation", Collections.emptyMap());
                 String pkg = BindingMapping.nameToPackageSegment(prop.get("prefix"));
                 String augName = pkg + "." + modelName + "Augmentation" + idx;
-                swagger.getDefinitions().put(augName, m);
+                openAPI.getDefinitions().put(augName, m);
                 aModels.add(new RefModel("#/definitions/"+augName));
                 idx++;
 
@@ -376,7 +376,7 @@ public class OptimizingDataObjectBuilder extends AbstractDataObjectBuilder {
         return model;
     }
 
-    Function<RefModel, Model> fromReference = ref -> swagger.getDefinitions().get(ref.getSimpleRef());
+    Function<RefModel, Model> fromReference = ref -> openAPI.getDefinitions().get(ref.getSimpleRef());
 
     private <T extends SchemaNode & DataNodeContainer> void verifyModel(T node, Model model) {
         if(model instanceof ComposedModel) {
@@ -586,7 +586,7 @@ public class OptimizingDataObjectBuilder extends AbstractDataObjectBuilder {
 
         String id = m.getSimpleRef();
 
-        Model model = swagger.getDefinitions().get(id);
+        Model model = openAPI.getDefinitions().get(id);
         if(model instanceof ModelImpl) return Collections.singleton(id);
 
         if(model instanceof RefModel) {

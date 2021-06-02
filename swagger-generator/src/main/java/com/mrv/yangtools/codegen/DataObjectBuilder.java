@@ -11,8 +11,7 @@
 
 package com.mrv.yangtools.codegen;
 
-import io.swagger.models.Model;
-import io.swagger.models.Swagger;
+import io.swagger.v3.oas.models.media.Schema;
 import org.opendaylight.yangtools.yang.model.api.DataNodeContainer;
 import org.opendaylight.yangtools.yang.model.api.Module;
 import org.opendaylight.yangtools.yang.model.api.SchemaNode;
@@ -30,7 +29,7 @@ public interface DataObjectBuilder extends DataObjectRepo {
      * @param <T> composed type
      * @return model for node
      */
-    <T extends SchemaNode & DataNodeContainer> Model build(T node);
+    <T extends SchemaNode & DataNodeContainer> Schema build(T node);
 
     /**
      * Pre-process module
@@ -39,7 +38,7 @@ public interface DataObjectBuilder extends DataObjectRepo {
     void processModule(Module module);
 
     /**
-     * Typically to build model and store it internally (i.e. in {@link Swagger} models definition
+     * Typically to build model and store it internally (i.e. in {@link io.swagger.v3.oas.models.OpenAPI} models definition
      * @param node to build model for and referencing to swagger definitions
      * @param <T> type
      */

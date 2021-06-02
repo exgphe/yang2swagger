@@ -14,6 +14,10 @@ package com.mrv.yangtools.codegen.impl;
 import com.mrv.yangtools.codegen.DataObjectBuilder;
 import io.swagger.models.*;
 import io.swagger.models.properties.*;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.media.ArraySchema;
+import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.media.StringSchema;
 import org.opendaylight.yangtools.yang.common.QName;
 import org.opendaylight.yangtools.yang.model.api.*;
 import org.opendaylight.yangtools.yang.model.api.Module;
@@ -40,7 +44,7 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
     private static final Logger log = LoggerFactory.getLogger(AbstractDataObjectBuilder.class);
 
     protected static final String DEF_PREFIX = "#/definitions/";
-    protected final Swagger swagger;
+    protected final OpenAPI openAPI;
     protected final TypeConverter converter;
     protected final SchemaContext ctx;
     protected final ModuleUtils moduleUtils;
@@ -62,11 +66,11 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
             .filter(c -> c instanceof DataNodeContainer)
             .anyMatch(c -> this.isTreeAugmented.test((DataNodeContainer) c)));
 
-    public AbstractDataObjectBuilder(SchemaContext ctx, Swagger swagger, TypeConverter converter) {
+    public AbstractDataObjectBuilder(SchemaContext ctx, OpenAPI openAPI, TypeConverter converter) {
         this.names = new HashMap<>();
         this.converter = converter;
         converter.setDataObjectBuilder(this);
-        this.swagger = swagger;
+        this.openAPI = openAPI;
         this.ctx = ctx;
         this.moduleUtils = new ModuleUtils(ctx);
         this.generatedEnums = new HashMap<>();
@@ -189,7 +193,7 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
      * @param llN leaf-list
      * @return property
      */
-    protected Property getPropertyByType(LeafListSchemaNode llN) {
+    protected Schema getPropertyByType(LeafListSchemaNode llN) {
         return converter.convert(llN.getType(), llN);
     }
 
@@ -199,31 +203,31 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
      * @param lN leaf
      * @return property
      */
-    protected Property getPropertyByType(LeafSchemaNode lN) {
+    protected Schema getPropertyByType(LeafSchemaNode lN) {
 
-        final Property property = converter.convert(lN.getType(), lN);
+        final Schema property = converter.convert(lN.getType(), lN);
         property.setDefault(lN.getDefault());
 
         return property;
     }
 
 
-    protected Map<String, Property> structure(DataNodeContainer node) {
+    protected Map<String, Schema> structure(DataNodeContainer node) {
         return structure(node, x -> true, x -> true);
     }
 
 
-    protected Map<String, Property> structure(DataNodeContainer node, Predicate<DataSchemaNode> acceptNode, Predicate<DataSchemaNode> acceptChoice) {
+    protected Map<String, Schema> structure(DataNodeContainer node, Predicate<DataSchemaNode> acceptNode, Predicate<DataSchemaNode> acceptChoice) {
 
         Predicate<DataSchemaNode> choiceP = c -> c instanceof ChoiceSchemaNode;
 
         // due to how inheritance is handled in yangtools the localName node collisions might appear
         // thus we need to apply collision strategy to override with the last attribute available
-        Map<String, Property> properties = node.getChildNodes().stream()
+        Map<String, Schema> properties = node.getChildNodes().stream()
                 .filter(choiceP.negate().and(acceptNode)) // choices handled elsewhere
                 .map(this::prop).collect(Collectors.toMap(pair -> pair.name, pair -> pair.property, (oldV, newV) -> newV));
 
-        Map<String, Property> choiceProperties = node.getChildNodes().stream()
+        Map<String, Schema> choiceProperties = node.getChildNodes().stream()
                 .filter(choiceP.and(acceptChoice)) // handling choices
                 .flatMap(c -> {
                     ChoiceSchemaNode choice = (ChoiceSchemaNode) c;
@@ -236,7 +240,7 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
                     return streamOfPairs;
                 }).collect(Collectors.toMap(pair -> pair.name, pair -> pair.property, (oldV, newV) -> newV));
 
-        HashMap<String, Property> result = new HashMap<>();
+        HashMap<String, Schema> result = new HashMap<>();
 
         result.putAll(properties);
         result.putAll(choiceProperties);
@@ -246,12 +250,12 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
     protected Pair prop(DataSchemaNode node) {
         final String propertyName = getPropertyName(node);
 
-        Property prop = null;
+        Schema prop = null;
 
         if (node instanceof LeafListSchemaNode) {
             LeafListSchemaNode ll = (LeafListSchemaNode) node;
-            prop = new ArrayProperty(getPropertyByType(ll));
-            ArrayProperty arrayProp = ((ArrayProperty) prop);
+            prop = new ArraySchema().items(getPropertyByType(ll));
+            ArraySchema arrayProp = ((ArraySchema) prop);
             if (node.getConstraints() != null) {
                 if (node.getConstraints().getMaxElements() != null) {
                     arrayProp.setMaxItems(node.getConstraints().getMaxElements());
@@ -267,8 +271,8 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
             prop = refOrStructure((ContainerSchemaNode) node);
         } else if (node instanceof ListSchemaNode) {
             ListSchemaNode ls = (ListSchemaNode) node;
-            prop = new ArrayProperty().items(refOrStructure(ls));
-            ArrayProperty arrayProp = ((ArrayProperty) prop);
+            prop = new ArraySchema().items(refOrStructure(ls));
+            ArraySchema arrayProp = ((ArraySchema) prop);
             if (node.getConstraints() != null) {
                 if (node.getConstraints().getMaxElements() != null) {
                     arrayProp.setMaxItems(node.getConstraints().getMaxElements());
@@ -278,15 +282,15 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
                 }
             }
             arrayProp.setUniqueItems(true);
-            arrayProp.setVendorExtension("x-key", ls.getKeyDefinition().stream().map(QName::getLocalName).collect(Collectors.joining(",")));
+            arrayProp.addExtension("x-key", ls.getKeyDefinition().stream().map(QName::getLocalName).collect(Collectors.joining(",")));
         } else if (node instanceof AnyXmlSchemaNode) {
             log.warn("generating swagger string property for any schema type for {}", node.getQName());
-            prop = new StringProperty();
+            prop = new StringSchema();
         }
 
         if (prop != null) {
             prop.setDescription(desc(node));
-            prop.setRequired(node.getConstraints().isMandatory());
+//            prop.setRequired(node.getConstraints().isMandatory()); // TODO
         }
         return new Pair(propertyName, prop);
     }
@@ -305,13 +309,13 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
         return module.getName();
     }
 
-    protected abstract <T extends DataSchemaNode & DataNodeContainer> Property refOrStructure(T node);
+    protected abstract <T extends DataSchemaNode & DataNodeContainer> Schema refOrStructure(T node);
 
-    private static void assignCaseMetadata(Property property, ChoiceSchemaNode choice, ChoiceCaseNode aCase) {
+    private static void assignCaseMetadata(Schema property, ChoiceSchemaNode choice, ChoiceCaseNode aCase) {
         String choiceName = choice.getQName().getLocalName();
         String caseName = aCase.getQName().getLocalName();
 
-        ((AbstractProperty) property).setVendorExtension("x-choice", choiceName + ":" + caseName);
+        property.addExtension("x-choice", choiceName + ":" + caseName);
     }
 
     /**
@@ -325,17 +329,18 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
     public <T extends SchemaNode & DataNodeContainer> void addModel(T node, String modelName) {
 
 
-        Model model = build(node);
+        Schema model = build(node);
 
-
-        if (swagger.getDefinitions() != null && swagger.getDefinitions().containsKey(modelName)) {
-            if (model.equals(swagger.getDefinitions().get(modelName))) {
-                return;
+        if (openAPI.getComponents()!=null) {
+            if (openAPI.getComponents() != null && openAPI.getComponents().getSchemas()!=null && openAPI.getComponents().getSchemas().containsKey(modelName)) {
+                if (model.equals(openAPI.getComponents().getSchemas().get(modelName))) {
+                    return;
+                }
+                log.warn("Overriding model {} with node {}", modelName, node.getQName());
             }
-            log.warn("Overriding model {} with node {}", modelName, node.getQName());
-        }
 
-        swagger.addDefinition(modelName, model);
+            openAPI.getComponents().addSchemas(modelName, model);
+        }
     }
 
     public <T extends SchemaNode & DataNodeContainer> void addModel(T node) {
@@ -355,8 +360,8 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
         if (!generatedEnums.containsKey(qName)) {
             log.debug("generating enum model for {}", qName);
             String name = getName(qName);
-            ModelImpl enumModel = build(enumType, qName);
-            swagger.addDefinition(name, enumModel);
+            Schema enumModel = build(enumType, qName);
+            openAPI.getComponents().addSchemas(name, enumModel);
             generatedEnums.put(qName, DEF_PREFIX + name);
         } else {
             log.debug("reusing enum model for {}", enumType.getQName());
@@ -364,12 +369,11 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
         return generatedEnums.get(qName);
     }
 
-    protected ModelImpl build(EnumTypeDefinition enumType, QName qName) {
-        ModelImpl model = new ModelImpl();
+    protected Schema build(EnumTypeDefinition enumType, QName qName) {
+        StringSchema model = new StringSchema();
         model.setEnum(enumType.getValues().stream()
                 .map(EnumTypeDefinition.EnumPair::getName).collect(Collectors.toList()));
-        model.setType("string");
-        model.setReference(getName(qName));
+        model.set$ref(getName(qName));
         return model;
     }
 
@@ -394,9 +398,9 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
 
     protected static class Pair {
         final protected String name;
-        final protected Property property;
+        final protected Schema property;
 
-        protected Pair(String name, Property property) {
+        protected Pair(String name, Schema property) {
             this.name = name;
             this.property = property;
         }
