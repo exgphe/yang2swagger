@@ -251,12 +251,13 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
         if (node instanceof LeafListSchemaNode) {
             LeafListSchemaNode ll = (LeafListSchemaNode) node;
             prop = new ArrayProperty(getPropertyByType(ll));
+            ArrayProperty arrayProp = ((ArrayProperty) prop);
             if (node.getConstraints() != null) {
                 if (node.getConstraints().getMaxElements() != null) {
-                    ((ArrayProperty) prop).setMaxItems(node.getConstraints().getMaxElements());
+                    arrayProp.setMaxItems(node.getConstraints().getMaxElements());
                 }
                 if (node.getConstraints().getMinElements() != null) {
-                    ((ArrayProperty) prop).setMinItems(node.getConstraints().getMinElements());
+                    arrayProp.setMinItems(node.getConstraints().getMinElements());
                 }
             }
         } else if (node instanceof LeafSchemaNode) {
@@ -265,15 +266,19 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
         } else if (node instanceof ContainerSchemaNode) {
             prop = refOrStructure((ContainerSchemaNode) node);
         } else if (node instanceof ListSchemaNode) {
-            prop = new ArrayProperty().items(refOrStructure((ListSchemaNode) node));
+            ListSchemaNode ls = (ListSchemaNode) node;
+            prop = new ArrayProperty().items(refOrStructure(ls));
+            ArrayProperty arrayProp = ((ArrayProperty) prop);
             if (node.getConstraints() != null) {
                 if (node.getConstraints().getMaxElements() != null) {
-                    ((ArrayProperty) prop).setMaxItems(node.getConstraints().getMaxElements());
+                    arrayProp.setMaxItems(node.getConstraints().getMaxElements());
                 }
                 if (node.getConstraints().getMinElements() != null) {
-                    ((ArrayProperty) prop).setMinItems(node.getConstraints().getMinElements());
+                    arrayProp.setMinItems(node.getConstraints().getMinElements());
                 }
             }
+            arrayProp.setUniqueItems(true);
+            arrayProp.setVendorExtension("x-key", ls.getKeyDefinition().stream().map(QName::getLocalName).collect(Collectors.joining(",")));
         } else if (node instanceof AnyXmlSchemaNode) {
             log.warn("generating swagger string property for any schema type for {}", node.getQName());
             prop = new StringProperty();

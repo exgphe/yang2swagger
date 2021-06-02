@@ -13,6 +13,7 @@ package com.mrv.yangtools.codegen;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.mrv.yangtools.codegen.impl.AnnotatingTypeConverter;
 import com.mrv.yangtools.codegen.impl.ModuleUtils;
@@ -22,6 +23,8 @@ import com.mrv.yangtools.codegen.impl.postprocessor.ReplaceEmptyWithParent;
 import com.mrv.yangtools.codegen.impl.postprocessor.SortComplexModels;
 import com.mrv.yangtools.common.SwaggerUtils;
 import io.swagger.models.Info;
+import io.swagger.models.RefModel;
+import io.swagger.models.Response;
 import io.swagger.models.Swagger;
 import org.opendaylight.yangtools.yang.model.api.*;
 import org.slf4j.Logger;
@@ -47,7 +50,6 @@ import java.util.stream.Collectors;
  * </ul>
  *
  * @author damian.mrozowicz@amartus.com
- *
  */
 public class SwaggerGenerator {
     private static final Logger log = LoggerFactory.getLogger(SwaggerGenerator.class);
@@ -80,7 +82,8 @@ public class SwaggerGenerator {
     }
 
 
-    public enum Format { YAML, JSON }
+    public enum Format {YAML, JSON}
+
     public enum Elements {
         /**
          * to generate path for data model (containers and lists)
@@ -97,7 +100,8 @@ public class SwaggerGenerator {
     /**
      * Preconfigure generator. By default it will genrate api for Data and RCP with JSon payloads only.
      * The api will be in YAML format. You might change default setting with config methods of the class
-     * @param ctx context for generation
+     *
+     * @param ctx               context for generation
      * @param modulesToGenerate modules that will be transformed to swagger API
      */
     public SwaggerGenerator(SchemaContext ctx, Set<org.opendaylight.yangtools.yang.model.api.Module> modulesToGenerate) {
@@ -108,13 +112,13 @@ public class SwaggerGenerator {
         Objects.requireNonNull(ctx);
         Objects.requireNonNull(modulesToGenerate);
 
-        if(ctx.getModules().isEmpty()) {
+        if (ctx.getModules().isEmpty()) {
             log.error("No modules found in the context.");
             throw new IllegalStateException("No modules found in the context.");
         }
-        if(modulesToGenerate.isEmpty()) {
+        if (modulesToGenerate.isEmpty()) {
             log.error("No modules has been specified for swagger generation");
-            if(log.isInfoEnabled()) {
+            if (log.isInfoEnabled()) {
                 String msg = ctx.getModules().stream().map(ModuleIdentifier::getName).collect(Collectors.joining(", "));
                 log.info("Modules in the context are: {}", msg);
             }
@@ -139,6 +143,7 @@ public class SwaggerGenerator {
 
     /**
      * Define version for generated swagger
+     *
      * @param version of swagger interface
      * @return itself
      */
@@ -149,6 +154,7 @@ public class SwaggerGenerator {
 
     /**
      * Add tag generator
+     *
      * @param generator to be added
      * @return this
      */
@@ -165,6 +171,7 @@ public class SwaggerGenerator {
 
     /**
      * Configure strategy
+     *
      * @param strategy to be used
      * @return this
      */
@@ -189,6 +196,7 @@ public class SwaggerGenerator {
 
     /**
      * YANG elements that are taken into account during generation
+     *
      * @return this
      */
     public SwaggerGenerator elements(Elements... elements) {
@@ -198,11 +206,12 @@ public class SwaggerGenerator {
 
     /**
      * Output format
+     *
      * @param f YAML or JSON
      * @return itself
      */
     public SwaggerGenerator format(Format f) {
-        switch(f) {
+        switch (f) {
             case YAML:
                 mapper = new ObjectMapper(new YAMLFactory());
                 break;
@@ -216,6 +225,7 @@ public class SwaggerGenerator {
 
     /**
      * Set host config for Swagger output
+     *
      * @param host general host to bind Swagger definition
      * @return this
      */
@@ -227,6 +237,7 @@ public class SwaggerGenerator {
 
     /**
      * Set base path
+     *
      * @param basePath '/restconf' by default
      * @return this
      */
@@ -237,6 +248,7 @@ public class SwaggerGenerator {
 
     /**
      * Add consumes type header for all methods
+     *
      * @param consumes type header
      * @return this
      */
@@ -248,6 +260,7 @@ public class SwaggerGenerator {
 
     /**
      * Add produces type header for all methods
+     *
      * @param produces type header
      * @return this
      */
@@ -259,22 +272,24 @@ public class SwaggerGenerator {
 
     /**
      * Add max depth level during walk through module node tree
+     *
      * @param maxDepth to which paths should be generated
      * @return this
      */
     public SwaggerGenerator maxDepth(int maxDepth) {
-    	this.maxDepth = maxDepth;
+        this.maxDepth = maxDepth;
         return this;
     }
 
     /**
      * Run Swagger generation for configured modules. Write result to target. The file format
      * depends on configured {@link SwaggerGenerator.Format}
+     *
      * @param target writer
      * @throws IOException when problem with writing
      */
     public void generate(Writer target) throws IOException {
-        if(target == null) throw new NullPointerException();
+        if (target == null) throw new NullPointerException();
 
         Swagger result = generate();
 
@@ -287,10 +302,9 @@ public class SwaggerGenerator {
     }
 
 
-
-
     /**
      * Run Swagger generation for configured modules.
+     *
      * @return Swagger model
      */
     public Swagger generate() {
@@ -299,13 +313,12 @@ public class SwaggerGenerator {
         ArrayList<String> mDescs = new ArrayList<>();
 
 
-
         log.info("Generating swagger for yang modules: {}",
-                modules.stream().map(ModuleIdentifier::getName).collect(Collectors.joining(",","[", "]")));
+                modules.stream().map(ModuleIdentifier::getName).collect(Collectors.joining(",", "[", "]")));
 
         modules.forEach(m -> {
             mNames.add(m.getName());
-            if(m.getDescription() != null && !m.getDescription().isEmpty()) {
+            if (m.getDescription() != null && !m.getDescription().isEmpty()) {
                 mDescs.add(m.getDescription());
             }
             dataObjectsBuilder.processModule(m);
@@ -319,7 +332,7 @@ public class SwaggerGenerator {
         // update info with module names and descriptions
         String modules = mNames.stream().collect(Collectors.joining(","));
         String descriptions = mDescs.stream().collect(Collectors.joining(","));
-        if(descriptions.isEmpty()) {
+        if (descriptions.isEmpty()) {
             descriptions = modules + " API generated from yang definitions";
         }
 
@@ -335,10 +348,11 @@ public class SwaggerGenerator {
     /**
      * Replace empty definitions with their parents.
      * Sort models (ref models first)
+     *
      * @param target to work on
      */
     protected void postProcessSwagger(Swagger target) {
-        if(target.getDefinitions() == null || target.getDefinitions().isEmpty()) {
+        if (target.getDefinitions() == null || target.getDefinitions().isEmpty()) {
             log.warn("Generated swagger has no definitions");
             return;
         }
@@ -351,7 +365,7 @@ public class SwaggerGenerator {
         private PathHandler handler;
 
         private ModuleGenerator(org.opendaylight.yangtools.yang.model.api.Module module) {
-            if(module == null) throw new NullPointerException("module is null");
+            if (module == null) throw new NullPointerException("module is null");
             this.module = module;
             handler = pathHandlerBuilder.forModule(module);
 
@@ -359,13 +373,13 @@ public class SwaggerGenerator {
         }
 
         void generate() {
-            if(toGenerate.contains(Elements.DATA)) {
+            if (toGenerate.contains(Elements.DATA)) {
                 pathCtx = new PathSegment(ctx)
                         .withModule(module.getName());
                 module.getChildNodes().forEach(n -> generate(n, maxDepth));
             }
 
-            if(toGenerate.contains(Elements.RCP)) {
+            if (toGenerate.contains(Elements.RCP)) {
                 pathCtx = new PathSegment(ctx)
                         .withModule(module.getName());
                 module.getRpcs().forEach(this::generate);
@@ -374,8 +388,8 @@ public class SwaggerGenerator {
 
         private void generate(RpcDefinition rcp) {
             pathCtx = new PathSegment(pathCtx)
-                        .withName(rcp.getQName().getLocalName())
-                        .withModule(module.getName());
+                    .withName(rcp.getQName().getLocalName())
+                    .withModule(module.getName());
 
             handler.path(rcp, pathCtx);
 
@@ -383,18 +397,18 @@ public class SwaggerGenerator {
         }
 
         private void generate(DataSchemaNode node, final int depth) {
-        	if(depth == 0) {
-        		log.debug("Maxmium depth level reached, skipping {} and it's childs", node.getPath());
-        		return;
-        	}
+            if (depth == 0) {
+                log.debug("Maxmium depth level reached, skipping {} and it's childs", node.getPath());
+                return;
+            }
 
-            if(!moduleNames.contains(moduleUtils.toModuleName(node))) {
+            if (!moduleNames.contains(moduleUtils.toModuleName(node))) {
                 log.debug("skipping {} as it is from {} module", node.getPath(), moduleUtils.toModuleName(node));
                 return;
             }
 
-            if(node instanceof ContainerSchemaNode) {
-                log.info("processing container statement {}", node.getQName().getLocalName() );
+            if (node instanceof ContainerSchemaNode) {
+                log.info("processing container statement {}", node.getQName().getLocalName());
                 final ContainerSchemaNode cN = (ContainerSchemaNode) node;
 
                 pathCtx = new PathSegment(pathCtx)
@@ -403,12 +417,12 @@ public class SwaggerGenerator {
                         .asReadOnly(!cN.isConfiguration());
 
                 handler.path(cN, pathCtx);
-                cN.getChildNodes().forEach(n -> generate(n, depth-1));
+                cN.getChildNodes().forEach(n -> generate(n, depth - 1));
                 dataObjectsBuilder.addModel(cN);
 
                 pathCtx = pathCtx.drop();
-            } else if(node instanceof ListSchemaNode) {
-                log.info("processing list statement {}", node.getQName().getLocalName() );
+            } else if (node instanceof ListSchemaNode) {
+                log.info("processing list statement {}", node.getQName().getLocalName());
                 final ListSchemaNode lN = (ListSchemaNode) node;
 
                 pathCtx = new PathSegment(pathCtx)
@@ -418,15 +432,15 @@ public class SwaggerGenerator {
                         .withListNode(lN);
 
                 handler.path(lN, pathCtx);
-                lN.getChildNodes().forEach(n -> generate(n, depth-1));
+                lN.getChildNodes().forEach(n -> generate(n, depth - 1));
                 dataObjectsBuilder.addModel(lN);
 
                 pathCtx = pathCtx.drop();
             } else if (node instanceof ChoiceSchemaNode) {
                 //choice node and cases are invisible from the perspective of generating path
-                log.info("inlining choice statement {}", node.getQName().getLocalName() );
+                log.info("inlining choice statement {}", node.getQName().getLocalName());
                 ((ChoiceSchemaNode) node).getCases().stream()
-                        .flatMap(_case -> _case.getChildNodes().stream()).forEach(n -> generate(n, depth-1));
+                        .flatMap(_case -> _case.getChildNodes().stream()).forEach(n -> generate(n, depth - 1));
             }
         }
     }

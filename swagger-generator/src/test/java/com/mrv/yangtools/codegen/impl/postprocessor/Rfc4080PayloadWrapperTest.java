@@ -19,6 +19,6 @@ public class Rfc4080PayloadWrapperTest extends AbstractWithSwagger {
                 .filter(k -> k.endsWith("Wrapper"))
                 .count();
 
-        assertTrue(numberOfWrappers == swagger.getPaths().size());
+        assertEquals(numberOfWrappers, swagger.getPaths().size());
     }
 }

@@ -89,7 +89,7 @@ You can generate ```yaml.swagger``` as part of resource generation step in your 
 ```
     <properties>
         <swaggerGeneratorPath>${project.basedir}/target/generated-sources/swagger</swaggerGeneratorPath>
-        <swagger.version>1.6.2</swagger.version>
+        <swagger.version>1.5.9</swagger.version>
         <yangName>yang</yangName>
     </properties>
 
