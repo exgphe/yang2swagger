@@ -93,7 +93,7 @@ public class TypeConverter {
         if (baseType instanceof IntegerTypeDefinition || baseType instanceof UnsignedIntegerTypeDefinition) {
             //TODO [bmi] how to map int8 type ???
             BaseIntegerProperty integer = new IntegerProperty();
-            if (BaseTypes.isInt64(baseType) || BaseTypes.isUint32(baseType)) {
+            if (BaseTypes.isInt64(baseType) || BaseTypes.isUint32(baseType) || BaseTypes.isUint64(baseType)) {
                 integer = new LongProperty();
             }
             if (baseType instanceof IntegerTypeDefinition) {

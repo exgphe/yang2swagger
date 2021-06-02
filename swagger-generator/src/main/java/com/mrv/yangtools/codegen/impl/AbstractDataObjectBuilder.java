@@ -277,7 +277,6 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
                     arrayProp.setMinItems(node.getConstraints().getMinElements());
                 }
             }
-            arrayProp.setUniqueItems(true);
             arrayProp.setVendorExtension("x-key", ls.getKeyDefinition().stream().map(QName::getLocalName).collect(Collectors.joining(",")));
         } else if (node instanceof AnyXmlSchemaNode) {
             log.warn("generating swagger string property for any schema type for {}", node.getQName());
@@ -287,6 +286,9 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
         if (prop != null) {
             prop.setDescription(desc(node));
             prop.setRequired(node.getConstraints().isMandatory());
+            if (!node.isConfiguration()) {
+                prop.setReadOnly(true);
+            }
         }
         return new Pair(propertyName, prop);
     }
