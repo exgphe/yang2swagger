@@ -169,7 +169,7 @@ public class PathSegment implements Iterable<PathSegment> {
                             final PathParameter param = new PathParameter()
                                     .name(name);
                             if (name.equals(k.getLocalName())) {
-                                param.setVendorExtension("x-original-name", k);
+                                param.setVendorExtension("x-original-name", k.getLocalName());
                             }
 
                             final Optional<LeafSchemaNode> keyNode = node.getChildNodes().stream()
