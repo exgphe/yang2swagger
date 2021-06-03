@@ -9,6 +9,10 @@ public class EnhancedIntegerProperty extends AbstractProperty implements Propert
     private Long maximum, minimum;
     private Boolean exclusiveMinimum, exclusiveMaximum;
 
+    public EnhancedIntegerProperty() {
+        setType("integer");
+    }
+
     public Long getMaximum() {
         return maximum;
     }

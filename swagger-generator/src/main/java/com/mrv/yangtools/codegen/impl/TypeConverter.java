@@ -101,9 +101,9 @@ public class TypeConverter {
                 }
                 return longInteger;
             } else if (BaseTypes.isUint32(baseType)) {
-                integer.setType("int64");
+                integer.setFormat("int64");
             } else {
-                integer.setType("int32");
+                integer.setFormat("int32");
             }
             if (baseType instanceof IntegerTypeDefinition) {
                 IntegerTypeDefinition integerTypeDefinition = ((IntegerTypeDefinition) baseType);
@@ -261,6 +261,7 @@ public class TypeConverter {
             empty.setMaxItems(1);
             empty.setMinItems(1);
             empty.setVendorExtension("x-empty", true);
+            empty.setVendorExtension("x-nullable", true);
             return empty;
         }
         return new StringProperty();
