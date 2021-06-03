@@ -168,7 +168,7 @@ public class PathSegment implements Iterable<PathSegment> {
 
                             final PathParameter param = new PathParameter()
                                     .name(name);
-                            if (name.equals(k.getLocalName())) {
+                            if (!name.equals(k.getLocalName())) {
                                 param.setVendorExtension("x-original-name", k.getLocalName());
                             }
 
