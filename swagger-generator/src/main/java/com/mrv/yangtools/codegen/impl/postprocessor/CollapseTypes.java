@@ -12,6 +12,7 @@ package com.mrv.yangtools.codegen.impl.postprocessor;
 import io.swagger.models.ComposedModel;
 import io.swagger.models.RefModel;
 import io.swagger.models.Swagger;
+import io.swagger.v3.oas.models.OpenAPI;
 
 import java.util.*;
 import java.util.function.Function;
@@ -34,9 +35,9 @@ public class CollapseTypes extends ReplaceDefinitionsProcessor {
 
 
     @Override
-    protected Map<String, String> prepareForReplacement(Swagger swagger) {
+    protected Map<String, String> prepareForReplacement(OpenAPI openAPI) {
 
-        Map<String, Set<String>> sameGroups = swagger.getDefinitions().entrySet().stream()
+        Map<String, Set<String>> sameGroups = openAPI.getDefinitions().entrySet().stream()
                 .filter(e -> e.getValue() instanceof ComposedModel)
                 .filter(e -> referenceOnly.test((ComposedModel) e.getValue()))
                 .map(e -> new AbstractMap.SimpleEntry<>(toSignature.apply((ComposedModel) e.getValue()), e.getKey()))

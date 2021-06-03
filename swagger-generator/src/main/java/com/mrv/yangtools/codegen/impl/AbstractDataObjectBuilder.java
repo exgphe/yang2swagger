@@ -43,7 +43,7 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractDataObjectBuilder.class);
 
-    protected static final String DEF_PREFIX = "#/definitions/";
+    protected static final String DEF_PREFIX = "#/components/schemas";
     protected final OpenAPI openAPI;
     protected final TypeConverter converter;
     protected final SchemaContext ctx;

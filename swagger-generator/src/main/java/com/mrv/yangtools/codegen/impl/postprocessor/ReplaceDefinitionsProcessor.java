@@ -12,12 +12,16 @@ package com.mrv.yangtools.codegen.impl.postprocessor;
 import io.swagger.models.*;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
+import io.swagger.v3.oas.models.media.ArraySchema;
+import io.swagger.v3.oas.models.media.ComposedSchema;
+import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -39,26 +43,26 @@ public abstract class ReplaceDefinitionsProcessor implements Consumer<OpenAPI> {
         target.getPaths().values().stream().flatMap(p -> p.readOperations().stream())
                 .forEach(o -> fixOperation(o, replacements));
 
-        target.getDefinitions().forEach((key, value) -> fixModel(key, value, replacements));
+        target.getComponents().getSchemas().forEach((key, value) -> fixModel(key, value, replacements));
         replacements.keySet().forEach(r -> {
             log.debug("removing {} model from swagger definitions", r);
-            target.getDefinitions().remove(r);
+            target.getComponents().getSchemas().remove(r);
         });
     }
 
-    protected abstract Map<String, String> prepareForReplacement(Swagger swagger);
+    protected abstract Map<String, String> prepareForReplacement(OpenAPI openAPI);
 
-    private void fixModel(String name, Model m, Map<String, String> replacements) {
-        ModelImpl fixProperties = null;
-        if(m instanceof ModelImpl) {
-            fixProperties = (ModelImpl) m;
+    private void fixModel(String name, Schema m, Map<String, String> replacements) {
+        Schema fixProperties = null;
+        if(m instanceof Schema) {
+            fixProperties = (Schema) m;
         }
 
-        if(m instanceof ComposedModel) {
-            ComposedModel cm = (ComposedModel) m;
+        if(m instanceof ComposedSchema) {
+            ComposedSchema cm = (ComposedSchema) m;
             fixComposedModel(name, cm, replacements);
             fixProperties =  cm.getAllOf().stream()
-                    .filter(c -> c instanceof ModelImpl).map(c -> (ModelImpl)c)
+                    .filter(Objects::nonNull)
                     .findFirst().orElse(null);
         }
 
@@ -70,38 +74,39 @@ public abstract class ReplaceDefinitionsProcessor implements Consumer<OpenAPI> {
             return;
         }
         fixProperties.getProperties().forEach((key, value) -> {
-            if (value instanceof RefProperty) {
-                if (fixProperty((RefProperty) value, replacements)) {
-                    log.debug("fixing property {} of {}", key, name);
-                }
-            } else if (value instanceof ArrayProperty) {
-                Property items = ((ArrayProperty) value).getItems();
-                if (items instanceof RefProperty) {
-                    if (fixProperty((RefProperty) items, replacements)) {
+            Schema schema = (Schema) value;
+            if (value instanceof ArraySchema) {
+                Schema items = ((ArraySchema) value).getItems();
+                if (items.get$ref()!=null) {
+                    if (fixProperty(items, replacements)) {
                         log.debug("fixing property {} of {}", key, name);
                     }
+                }
+            } else if (schema.get$ref()!=null) {
+                if (fixProperty(schema, replacements)) {
+                    log.debug("fixing property {} of {}", key, name);
                 }
             }
         });
 
     }
-    private boolean fixProperty(RefProperty p, Map<String, String> replacements) {
-        if(replacements.containsKey(p.getSimpleRef())) {
-            p.set$ref(replacements.get(p.getSimpleRef()));
+    private boolean fixProperty(Schema p, Map<String, String> replacements) {
+        if(replacements.containsKey(p.get$ref())) {
+            p.set$ref(replacements.get(p.get$ref()));
             return true;
         }
         return false;
     }
 
-    private void fixComposedModel(String name, ComposedModel m, Map<String, String> replacements) {
-        Set<RefModel> toReplace = m.getAllOf().stream().filter(c -> c instanceof RefModel).map(cm -> (RefModel) cm)
-                .filter(rm -> replacements.containsKey(rm.getSimpleRef())).collect(Collectors.toSet());
+    private void fixComposedModel(String name, ComposedSchema m, Map<String, String> replacements) {
+        Set<Schema> toReplace = m.getAllOf().stream().filter(c -> c.get$ref()!=null)
+                .filter(rm -> replacements.containsKey(rm.get$ref())).collect(Collectors.toSet());
         toReplace.forEach(r -> {
             int idx = m.getAllOf().indexOf(r);
-            RefModel newRef = new RefModel(replacements.get(r.getSimpleRef()));
+            Schema newRef = new Schema().$ref(replacements.get(r.get$ref()));
             m.getAllOf().set(idx, newRef);
-            if(m.getInterfaces().remove(r)) {
-                m.getInterfaces().add(newRef);
+            if(m.getAllOf().remove(r)) {
+                m.getAllOf().add(newRef);
             }
         });
     }
