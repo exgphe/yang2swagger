@@ -31,6 +31,7 @@ import java.util.stream.StreamSupport;
  * Helper class that help to keep track of current location in YANG module data tree.
  * Segment stores current node related data and can point to its parent that
  * effectively allows for path computation from current node to root node.
+ *
  * @author cmurch@mrv.com
  * @author bartosz.michalik@amartus.com
  */
@@ -49,6 +50,7 @@ public class PathSegment implements Iterable<PathSegment> {
 
     /**
      * To create a root segment of path
+     *
      * @param ctx YANG context
      */
     public PathSegment(SchemaContext ctx) {
@@ -61,7 +63,8 @@ public class PathSegment implements Iterable<PathSegment> {
         };
     }
 
-    private PathSegment() {}
+    private PathSegment() {
+    }
 
     public PathSegment(PathSegment parent) {
         Objects.requireNonNull(parent);
@@ -89,7 +92,7 @@ public class PathSegment implements Iterable<PathSegment> {
     }
 
     public PathSegment asReadOnly(boolean readOnly) {
-        if(!parent.readOnly) {
+        if (!parent.readOnly) {
             this.readOnly = readOnly;
         } else {
             // https://tools.ietf.org/html/rfc6020#section-7.19.1
@@ -98,9 +101,17 @@ public class PathSegment implements Iterable<PathSegment> {
         return this;
     }
 
-    public String getName() { return name;}
-    public String getModuleName() { return moduleName;}
-    public Collection<? extends Parameter> getParam() { return localParameters();}
+    public String getName() {
+        return name;
+    }
+
+    public String getModuleName() {
+        return moduleName;
+    }
+
+    public Collection<? extends Parameter> getParam() {
+        return localParameters();
+    }
 
     public boolean forList() {
         return node != null && !node.getKeyDefinition().isEmpty();
@@ -145,30 +156,33 @@ public class PathSegment implements Iterable<PathSegment> {
     }
 
     protected Collection<? extends Parameter> localParameters() {
-        if(localParams == null) {
-            if(node != null) {
+        if (localParams == null) {
+            if (node != null) {
                 log.debug("processing parameters from attached node");
                 final Set<String> existingNames = parent.params().stream().map(Parameter::getName).collect(Collectors.toSet());
 
                 localParams = node.getKeyDefinition().stream()
                         .map(k -> {
 
-                            final String name = k.getLocalName();
+                            final String name = generateName(k, existingNames);
 
                             final PathParameter param = new PathParameter()
                                     .name(name);
+                            if (name.equals(k.getLocalName())) {
+                                param.setVendorExtension("x-original-name", k);
+                            }
 
                             final Optional<LeafSchemaNode> keyNode = node.getChildNodes().stream()
                                     .filter(n -> n instanceof LeafSchemaNode)
                                     .filter(n -> n.getQName().equals(k))
-                                    .map(n -> ((LeafSchemaNode)n))
+                                    .map(n -> ((LeafSchemaNode) n))
                                     .findFirst();
 
-                            if(keyNode.isPresent()) {
+                            if (keyNode.isPresent()) {
                                 final LeafSchemaNode kN = keyNode.get();
                                 param
-                                    .description("Id of " + node.getQName().getLocalName())
-                                    .property(converter.convert(kN.getType(), kN));
+                                        .description("Id of " + node.getQName().getLocalName())
+                                        .property(converter.convert(kN.getType(), kN));
                             }
                             return param;
                         })
@@ -183,14 +197,14 @@ public class PathSegment implements Iterable<PathSegment> {
 
     protected String generateName(QName paramName, Set<String> existingNames) {
         String name = paramName.getLocalName();
-        if(! existingNames.contains(name)) return name;
+        if (!existingNames.contains(name)) return name;
         name = this.name + "-" + name;
 
-        if(! existingNames.contains(name)) return name;
+        if (!existingNames.contains(name)) return name;
 
         name = moduleName + "-" + name;
 
-        if(! existingNames.contains(name)) return name;
+        if (!existingNames.contains(name)) return name;
 
         //brute-force
         final String tmpName = name;
