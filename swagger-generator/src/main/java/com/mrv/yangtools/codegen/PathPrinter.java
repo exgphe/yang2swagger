@@ -79,8 +79,8 @@ public abstract class PathPrinter {
             result.addFirst(p);
         }
 
-        return result.stream().map(s -> segment(paramPrinter, s.getModuleName(), s)).collect(Collectors.joining()) + lastSegment;
-
+        String printed = result.stream().map(s -> segment(paramPrinter, s.getModuleName(), s)).collect(Collectors.joining()) + lastSegment;
+        return printed.substring(0, printed.length()-1); // remove trailing slash
     }
 
     protected Optional<String> parentModuleName(PathSegment segment) {

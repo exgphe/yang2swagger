@@ -25,15 +25,19 @@ public class PatchOperationGenerator extends OperationGenerator {
         String description = node.getDescription() == null ? "patches " + getName(node) :
                 node.getDescription();
         patch.description(description);
-        patch.parameter(new BodyParameter()
+        BodyParameter bodyParameter = new BodyParameter()
                 .name(getName(node) + ".body-param")
                 .schema(definition)
-                .description(getName(node) + " to be added or updated"));
+                .description(getName(node) + " to be added or updated");
+        bodyParameter.setRequired(true);
+        patch.parameter(bodyParameter);
 
-        patch.response(200, new Response()
-                .schema(new RefProperty(getDefinitionId(node)))
-                .description(getName(node)));
+//        patch.response(200, new Response()
+//                .schema(new RefProperty(getDefinitionId(node)))
+//                .description(getName(node))); // TODO is there a 200 return?
         patch.response(204, new Response().description("Operation successful"));
+        patch.response(401, new Response().description("Unauthorized"));
+        patch.response(403, new Response().description("Forbidden"));
         return patch;
     }
 }

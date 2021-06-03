@@ -39,12 +39,19 @@ public class PostOperationGenerator extends OperationGenerator {
         String description = node.getDescription() == null ? "creates " + getName(node) :
                 node.getDescription();
         post.description(description);
-        post.parameter(new BodyParameter()
+        BodyParameter bodyParameter = new BodyParameter()
                 .name(getName(node) + ".body-param")
                 .schema(definition)
-                .description(getName(node) + " to be added to list"));
+                .description(getName(node) + " to be added to list");
+        bodyParameter.setRequired(true);
+        post.parameter(bodyParameter);
 
         post.response(201, new Response().description("Object created"));
+        post.response(400, new Response().description("Bad Request"));
+        post.response(401, new Response().description("Unauthorized"));
+        post.response(403, new Response().description("Forbidden"));
+        // post.response(404, new Response().description("Not Found"));
+        // TODO in what circumstance will it 404?
         post.response(409, new Response().description("Object already exists"));
         return post;
     }

@@ -23,6 +23,7 @@ import java.util.Set;
 
 /**
  * REST path handler compliant with RESTCONF spec RFC 8040
+ *
  * @author cmurch@mrv.com
  * @author bartosz.michalik@amartus.com
  */
@@ -53,7 +54,7 @@ class PathHandler extends AbstractPathHandler {
         RestconfPathPrinter printer = new RestconfPathPrinter(pathCtx, useModuleName);
         swagger.path(data + printer.path(), path);
 
-        if(!fullCrud || pathCtx.isReadOnly()) return;
+        if (!fullCrud || pathCtx.isReadOnly()) return;
 
         //referencing list path
         final Path list = new Path();
@@ -61,7 +62,12 @@ class PathHandler extends AbstractPathHandler {
 
 
         RestconfPathPrinter postPrinter = new RestconfPathPrinter(pathCtx, useModuleName, true);
-        swagger.path(data + postPrinter.path(), list);
+        String printerPath = postPrinter.path();
+        String[] tokens = printerPath.split("/");
+        if (!tokens[tokens.length - 1].contains("=")) {
+            return;
+        }
+        swagger.path(data + printerPath, list);
     }
 
     @Override

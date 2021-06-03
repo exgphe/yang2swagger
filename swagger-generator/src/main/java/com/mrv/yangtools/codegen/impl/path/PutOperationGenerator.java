@@ -36,13 +36,18 @@ public class PutOperationGenerator extends OperationGenerator {
         String description = node.getDescription() == null ? "creates or updates " + getName(node) :
                 node.getDescription();
         put.description(description);
-        put.parameter(new BodyParameter()
+        BodyParameter bodyParameter = new BodyParameter()
                 .name(getName(node) + ".body-param")
                 .schema(definition)
-                .description(getName(node) + " to be added or updated"));
+                .description(getName(node) + " to be added or updated");
+        bodyParameter.setRequired(true);
+        put.parameter(bodyParameter);
 
         put.response(201, new Response().description("Object created"));
         put.response(204, new Response().description("Object modified"));
+        put.response(401, new Response().description("Unauthorized"));
+        put.response(403, new Response().description("Forbidden"));
+        // TODO in what circumstance will it 404?
         return put;
     }
 }

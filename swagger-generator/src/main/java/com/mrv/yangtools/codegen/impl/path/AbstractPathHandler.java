@@ -27,7 +27,7 @@ public abstract class AbstractPathHandler implements PathHandler {
     protected String operations;
     protected final DataObjectBuilder dataObjectBuilder;
     protected final Set<TagGenerator> tagGenerators;
-    protected final  boolean fullCrud;
+    protected final boolean fullCrud;
 
     protected AbstractPathHandler(SchemaContext ctx, org.opendaylight.yangtools.yang.model.api.Module modules, Swagger target, DataObjectBuilder objBuilder, Set<TagGenerator> generators, boolean fullCrud) {
         this.swagger = target;
@@ -52,16 +52,16 @@ public abstract class AbstractPathHandler implements PathHandler {
         ContainerSchemaNode input = rcp.getInput();
         ContainerSchemaNode output = rcp.getOutput();
         ContainerSchemaNode root = new RpcContainerSchemaNode(rcp);
-        
+
         input = input.getChildNodes().isEmpty() ? null : input;
         output = output.getChildNodes().isEmpty() ? null : output;
-    	
+
         PathPrinter printer = getPrinter(pathCtx);
 
         Operation post = defaultOperation(pathCtx);
 
         post.tag(module.getName());
-        if(input != null) {
+        if (input != null) {
             dataObjectBuilder.addModel(input);
 
             ModelImpl inputModel = new ModelImpl();
@@ -74,23 +74,29 @@ public abstract class AbstractPathHandler implements PathHandler {
                     .schema(inputModel)
                     .description(input.getDescription())
             );
+            post.getResponses().remove("201");
         }
 
-        if(output != null) {
+        if (output != null) {
             String description = output.getDescription();
-            if(description == null) {
+            if (description == null) {
                 description = "Correct response";
             }
 
             RefProperty refProperty = new RefProperty();
             refProperty.set$ref(dataObjectBuilder.getDefinitionId(root));
-            
+
             dataObjectBuilder.addModel(root);
             post.response(200, new Response()
                     .schema(refProperty)
                     .description(description));
+        } else {
+            post.response(204, new Response().description("No Content")); //no output body
         }
-        post.response(201, new Response().description("No response")); //no output body
+        post.response(400, new Response().description("Bad Request"));
+        post.response(401, new Response().description("Unauthorized"));
+        post.response(403, new Response().description("Forbidden"));
+        post.response(404, new Response().description("Not Found"));
         swagger.path(operations + printer.path(), new Path().post(post));
     }
 
@@ -104,9 +110,10 @@ public abstract class AbstractPathHandler implements PathHandler {
         List<String> tags = tags(pathCtx);
 
         path.get(new GetOperationGenerator(pathCtx, dataObjectBuilder).execute(node).tags(tags));
-        if(generateModifyOperations(pathCtx)) {
+        if (generateModifyOperations(pathCtx)) {
             path.put(new PutOperationGenerator(pathCtx, dataObjectBuilder).execute(node).tags(tags));
-            if(!pathCtx.forList()) {
+            path.patch(new PatchOperationGenerator(pathCtx, dataObjectBuilder).execute(node).tags(tags));
+            if (!pathCtx.forList()) {
                 path.post(new PostOperationGenerator(pathCtx, dataObjectBuilder, false).execute(node).tags(tags));
             }
             path.delete(new DeleteOperationGenerator(pathCtx, dataObjectBuilder).execute(node).tags(tags));

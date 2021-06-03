@@ -34,6 +34,8 @@ public class DeleteOperationGenerator extends OperationGenerator {
                 node.getDescription();
         delete.description(description);
         delete.response(204, new Response().description("Object deleted"));
+        delete.response(401, new Response().description("Unauthorized"));
+        delete.response(403, new Response().description("Forbidden"));
         return delete;
     }
 }

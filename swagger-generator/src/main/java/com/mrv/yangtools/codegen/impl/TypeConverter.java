@@ -12,6 +12,7 @@
 package com.mrv.yangtools.codegen.impl;
 
 import com.mrv.yangtools.codegen.DataObjectBuilder;
+import com.mrv.yangtools.codegen.impl.swagger.EnhancedIntegerProperty;
 import io.swagger.models.properties.*;
 import org.opendaylight.yangtools.yang.model.api.SchemaContext;
 import org.opendaylight.yangtools.yang.model.api.SchemaNode;
@@ -22,6 +23,7 @@ import org.opendaylight.yangtools.yang.model.util.type.BaseTypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigInteger;
 import java.util.stream.Collectors;
 
 /**
@@ -63,53 +65,60 @@ public class TypeConverter {
         }
 
         if (baseType instanceof DecimalTypeDefinition) {
-            DecimalProperty decimalProperty = new DecimalProperty();
+            StringProperty decimalProperty = new StringProperty();
+            decimalProperty.setVendorExtension("x-type", "decimal64");
             DecimalTypeDefinition decimalTypeDefinition = ((DecimalTypeDefinition) baseType);
             if (decimalTypeDefinition.getRangeConstraints() != null) {
-                Double currentMax = null;
-                Double currentMin = null;
-                for (RangeConstraint rangeConstraint : decimalTypeDefinition.getRangeConstraints()) {
-                    if (rangeConstraint.getMax() != null) {
-                        if (currentMax == null || currentMax < rangeConstraint.getMax().doubleValue()) {
-                            currentMax = rangeConstraint.getMax().doubleValue();
-                        }
-                    }
-                    if (rangeConstraint.getMin() != null) {
-                        if (currentMin == null || currentMin > rangeConstraint.getMin().doubleValue()) {
-                            currentMin = rangeConstraint.getMin().doubleValue();
-                        }
-                    }
-                }
-                if (currentMax != null) {
-                    decimalProperty.setMaximum(currentMax);
-                }
-                if (currentMin != null) {
-                    decimalProperty.setMinimum(currentMin);
-                }
+                decimalProperty.setVendorExtension("x-range", decimalTypeDefinition.getRangeConstraints());
+            }
+            if (decimalTypeDefinition.getFractionDigits() != null) {
+                decimalProperty.setPattern("^[+-]?((\\d+(\\.\\d{0," + decimalTypeDefinition.getFractionDigits() + "})?)|(\\.\\d{1," + decimalTypeDefinition.getFractionDigits() + "}))$");
+                decimalProperty.setVendorExtension("x-fraction-digits", decimalTypeDefinition.getFractionDigits());
+            } else {
+                decimalProperty.setPattern("^[+-]?((\\d+(\\.\\d*)?)|(\\.\\d+))$");
             }
             return decimalProperty;
         }
 
         if (baseType instanceof IntegerTypeDefinition || baseType instanceof UnsignedIntegerTypeDefinition) {
-            //TODO [bmi] how to map int8 type ???
-            BaseIntegerProperty integer = new IntegerProperty();
-            if (BaseTypes.isInt64(baseType) || BaseTypes.isUint32(baseType) || BaseTypes.isUint64(baseType)) {
-                integer = new LongProperty();
+            EnhancedIntegerProperty integer = new EnhancedIntegerProperty();
+            if (BaseTypes.isInt64(baseType) || BaseTypes.isUint64(baseType)) {
+                StringProperty longInteger = new StringProperty();
+                if (BaseTypes.isInt64(baseType)) {
+                    longInteger.setVendorExtension("x-type", "int64");
+                    longInteger.setPattern("^(0|[1-9][0-9]*|-[1-9][0-9]*)$");
+                    IntegerTypeDefinition integerTypeDefinition = ((IntegerTypeDefinition) baseType);
+                    if (integerTypeDefinition.getRangeConstraints() != null) {
+                        longInteger.setVendorExtension("x-range", integerTypeDefinition.getRangeConstraints());
+                    }
+                } else {
+                    longInteger.setVendorExtension("x-type", "uint64");
+                    longInteger.setPattern("^([1-9][0-9]*)$");
+                    UnsignedIntegerTypeDefinition integerTypeDefinition = ((UnsignedIntegerTypeDefinition) baseType);
+                    if (integerTypeDefinition.getRangeConstraints() != null) {
+                        longInteger.setVendorExtension("x-range", integerTypeDefinition.getRangeConstraints());
+                    }
+                }
+                return longInteger;
+            } else if (BaseTypes.isUint32(baseType)) {
+                integer.setType("int64");
+            } else {
+                integer.setType("int32");
             }
             if (baseType instanceof IntegerTypeDefinition) {
                 IntegerTypeDefinition integerTypeDefinition = ((IntegerTypeDefinition) baseType);
                 if (integerTypeDefinition.getRangeConstraints() != null) {
-                    Double currentMax = null;
-                    Double currentMin = null;
+                    Long currentMax = null;
+                    Long currentMin = null;
                     for (RangeConstraint rangeConstraint : integerTypeDefinition.getRangeConstraints()) {
                         if (rangeConstraint.getMax() != null) {
-                            if (currentMax == null || currentMax < rangeConstraint.getMax().doubleValue()) {
-                                currentMax = rangeConstraint.getMax().doubleValue();
+                            if (currentMax == null || currentMax < rangeConstraint.getMax().longValue()) {
+                                currentMax = rangeConstraint.getMax().longValue();
                             }
                         }
                         if (rangeConstraint.getMin() != null) {
-                            if (currentMin == null || currentMin > rangeConstraint.getMin().doubleValue()) {
-                                currentMin = rangeConstraint.getMin().doubleValue();
+                            if (currentMin == null || currentMin > rangeConstraint.getMin().longValue()) {
+                                currentMin = rangeConstraint.getMin().longValue();
                             }
                         }
                     }
@@ -118,22 +127,25 @@ public class TypeConverter {
                     }
                     if (currentMin != null) {
                         integer.setMinimum(currentMin);
+                    }
+                    if (integerTypeDefinition.getRangeConstraints().size() > 1) {
+                        integer.setVendorExtension("x-range", integerTypeDefinition.getRangeConstraints());
                     }
                 }
             } else if (baseType instanceof UnsignedIntegerTypeDefinition) {
                 UnsignedIntegerTypeDefinition unsignedIntegerTypeDefinition = ((UnsignedIntegerTypeDefinition) baseType);
                 if (unsignedIntegerTypeDefinition.getRangeConstraints() != null) {
-                    Double currentMax = null;
-                    Double currentMin = null;
+                    Long currentMax = null;
+                    Long currentMin = null;
                     for (RangeConstraint rangeConstraint : unsignedIntegerTypeDefinition.getRangeConstraints()) {
                         if (rangeConstraint.getMax() != null) {
-                            if (currentMax == null || currentMax < rangeConstraint.getMax().doubleValue()) {
-                                currentMax = rangeConstraint.getMax().doubleValue();
+                            if (currentMax == null || currentMax < rangeConstraint.getMax().longValue()) {
+                                currentMax = rangeConstraint.getMax().longValue();
                             }
                         }
                         if (rangeConstraint.getMin() != null) {
-                            if (currentMin == null || currentMin > rangeConstraint.getMin().doubleValue()) {
-                                currentMin = rangeConstraint.getMin().doubleValue();
+                            if (currentMin == null || currentMin > rangeConstraint.getMin().longValue()) {
+                                currentMin = rangeConstraint.getMin().longValue();
                             }
                         }
                     }
@@ -142,6 +154,9 @@ public class TypeConverter {
                     }
                     if (currentMin != null) {
                         integer.setMinimum(currentMin);
+                    }
+                    if (unsignedIntegerTypeDefinition.getRangeConstraints().size() > 1) {
+                        integer.setVendorExtension("x-range", unsignedIntegerTypeDefinition.getRangeConstraints());
                     }
                 }
             }
@@ -166,13 +181,28 @@ public class TypeConverter {
                 }
             }
             if (stringType.getLengthConstraints() != null) {
+                Integer currentMax = null;
+                Integer currentMin = null;
                 for (LengthConstraint lengthConstraint : stringType.getLengthConstraints()) {
                     if (lengthConstraint.getMax() != null) {
-                        string.setMaxLength(lengthConstraint.getMax().intValue());
+                        if (currentMax == null || currentMax < lengthConstraint.getMax().intValue()) {
+                            currentMax = lengthConstraint.getMax().intValue();
+                        }
                     }
                     if (lengthConstraint.getMin() != null) {
-                        string.setMinLength(lengthConstraint.getMin().intValue());
+                        if (currentMin == null || currentMin > lengthConstraint.getMin().intValue()) {
+                            currentMin = lengthConstraint.getMin().intValue();
+                        }
                     }
+                }
+                if (currentMax != null) {
+                    string.setMaxLength(currentMax);
+                }
+                if (currentMin != null) {
+                    string.setMinLength(currentMin);
+                }
+                if (stringType.getLengthConstraints().size() > 1) {
+                    string.setVendorExtension("x-length", stringType.getLengthConstraints());
                 }
             }
             return string;
@@ -181,19 +211,35 @@ public class TypeConverter {
             BinaryTypeDefinition binaryType = (BinaryTypeDefinition) type;
             BinaryProperty binary = new BinaryProperty();
             if (binaryType.getLengthConstraints() != null) {
+                Integer currentMax = null;
+                Integer currentMin = null;
                 for (LengthConstraint lengthConstraint : binaryType.getLengthConstraints()) {
                     if (lengthConstraint.getMax() != null) {
-                        binary.setMaxLength(lengthConstraint.getMax().intValue());
+                        if (currentMax == null || currentMax < lengthConstraint.getMax().intValue()) {
+                            currentMax = lengthConstraint.getMax().intValue();
+                        }
                     }
                     if (lengthConstraint.getMin() != null) {
-                        binary.setMinLength(lengthConstraint.getMin().intValue());
+                        if (currentMin == null || currentMin > lengthConstraint.getMin().intValue()) {
+                            currentMin = lengthConstraint.getMin().intValue();
+                        }
                     }
+                }
+                if (currentMax != null) {
+                    binary.setMaxLength(currentMax);
+                }
+                if (currentMin != null) {
+                    binary.setMinLength(currentMin);
+                }
+                if (binaryType.getLengthConstraints().size() > 1) {
+                    binary.setVendorExtension("x-length", binaryType.getLengthConstraints());
                 }
             }
             return binary;
         }
 
         if (type instanceof UnionTypeDefinition) {
+            Property unionProperty = new StringProperty();
             UnionTypeDefinition unionTypeDefinition = (UnionTypeDefinition) type;
             boolean isNumber = true;
             for (TypeDefinition<?> unionTypeDefinitionType : unionTypeDefinition.getTypes()) {
@@ -204,8 +250,18 @@ public class TypeConverter {
                 break;
             }
             if (isNumber && !unionTypeDefinition.getTypes().isEmpty()) {
-                return convert(unionTypeDefinition.getTypes().get(0), parent);
+                unionProperty = convert(unionTypeDefinition.getTypes().get(0), parent);
             }
+            unionProperty.getVendorExtensions().put("x-union", unionTypeDefinition.getTypes().stream().map(typeDefinition -> convert(typeDefinition, parent)).collect(Collectors.toList()));
+            return unionProperty;
+        }
+        if (type instanceof EmptyTypeDefinition) {
+            ArrayProperty empty = new ArrayProperty();
+            empty.items(new StringProperty()); // Swagger 2.0 does not have a null type
+            empty.setMaxItems(1);
+            empty.setMinItems(1);
+            empty.setVendorExtension("x-empty", true);
+            return empty;
         }
         return new StringProperty();
     }

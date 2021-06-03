@@ -280,12 +280,17 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
             arrayProp.setVendorExtension("x-key", ls.getKeyDefinition().stream().map(QName::getLocalName).collect(Collectors.joining(",")));
         } else if (node instanceof AnyXmlSchemaNode) {
             log.warn("generating swagger string property for any schema type for {}", node.getQName());
-            prop = new StringProperty();
+            prop = new StringProperty().vendorExtension("x-anyxml", true);
+        } else if (node instanceof AnyDataSchemaNode) {
+            prop = refOrStructure(((AnyDataSchemaNode) node).getSchemaOfAnyData());
         }
 
         if (prop != null) {
             prop.setDescription(desc(node));
-            prop.setRequired(node.getConstraints().isMandatory());
+            if (node.getConstraints().isMandatory()) {
+                prop.getVendorExtensions().put("x-mandatory", true);
+            }
+//            prop.setRequired(node.getConstraints().isMandatory()); // TODO in PATCH and some POST it is not required
             if (!node.isConfiguration()) {
                 prop.setReadOnly(true);
             }

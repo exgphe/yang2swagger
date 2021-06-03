@@ -15,8 +15,15 @@ import com.mrv.yangtools.codegen.DataObjectRepo;
 import com.mrv.yangtools.codegen.PathSegment;
 import io.swagger.models.Operation;
 import io.swagger.models.Response;
+import io.swagger.models.parameters.QueryParameter;
+import io.swagger.models.properties.IntegerProperty;
+import io.swagger.models.properties.Property;
 import io.swagger.models.properties.RefProperty;
+import io.swagger.models.properties.StringProperty;
 import org.opendaylight.yangtools.yang.model.api.DataSchemaNode;
+
+import java.util.ArrayList;
+import java.util.Collections;
 
 /**
  * @author cmurch@mrv.com
@@ -34,9 +41,30 @@ public class GetOperationGenerator extends OperationGenerator {
         String description = node.getDescription() == null ? "returns " + getName(node) :
                 node.getDescription();
         get.description(description);
+
+//        QueryParameter content = new QueryParameter().name("content").description("Select config and/or non-config data resources").type("string");
+//        content.setEnum(new ArrayList<String>() {{
+//            add("config");
+//            add("nonconfig");
+//            add("all");
+//        }});
+//        content.setDefault("all");
+//        get.addParameter(content);
+//
+//        QueryParameter depth = new QueryParameter().name("depth").description("Request limited subtree depth in the reply content").type("string");
+//        depth.setDefault("unbounded");
+//        depth.setVendorExtension("x-union", new ArrayList<Property>() {{
+//            add(new StringProperty()._enum(Collections.singletonList("unbounded")));
+//            add(new IntegerProperty().maximum(65536.).minimum(0.));
+//        }});
+//        get.addParameter(depth);
+
         get.response(200, new Response()
                 .schema(new RefProperty(getDefinitionId(node)))
                 .description(getName(node)));
+        get.response(400, new Response().description("Bad Request"));
+        get.response(401, new Response().description("Unauthorized"));
+        get.response(404, new Response().description("Not Found"));
         return get;
     }
 }

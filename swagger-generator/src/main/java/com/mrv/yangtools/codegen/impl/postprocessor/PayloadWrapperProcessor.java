@@ -7,6 +7,7 @@ import io.swagger.models.properties.RefProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -36,13 +37,18 @@ public abstract class PayloadWrapperProcessor implements Consumer<Swagger> {
 
         processOperation(path.getGet(), toProperty(key));
         processOperation(path.getPut(), toProperty(key));
-        processOperation(path.getPost(), toProperty(key));
+        processOperation(path.getPost(), toProperty(key), true);
+        processOperation(path.getPatch(), toProperty(key));
         processOperation(path.getDelete(), toProperty(key));
     }
 
     protected abstract String toProperty(String path);
 
     private void processOperation(Operation operation, String propertyName) {
+        processOperation(operation, propertyName, false);
+    }
+
+    private void processOperation(Operation operation, String propertyName, Boolean isPost) {
         if (operation == null) {
             return;
         }
@@ -55,7 +61,7 @@ public abstract class PayloadWrapperProcessor implements Consumer<Swagger> {
                 .filter(p -> p instanceof BodyParameter)
                 .map(p -> (BodyParameter) p)
                 .filter(p -> p.getSchema() instanceof RefModel)
-                .forEach(param -> wrap(propertyName, param, operation));
+                .forEach(param -> wrap(propertyName, param, operation, isPost));
 
 
     }
@@ -66,9 +72,14 @@ public abstract class PayloadWrapperProcessor implements Consumer<Swagger> {
         r.setSchema(new RefProperty(wrapperName));
     }
 
-    private void wrap(String propertyName, BodyParameter param, Operation operation) {
+    private void wrap(String propertyName, BodyParameter param, Operation operation, Boolean isPost) {
         RefModel m = (RefModel) param.getSchema();
-        String wrapperName = wrap(propertyName, m.getSimpleRef(), operation.getTags().get(0));
+        String wrapperName;
+        if (isPost) {
+            wrapperName = wrapPostBodyParameter(m.getSimpleRef(), operation.getTags().get(0));
+        } else {
+            wrapperName = wrap(propertyName, m.getSimpleRef(), operation.getTags().get(0));
+        }
         param.setSchema(new RefModel(wrapperName));
     }
 
@@ -87,6 +98,33 @@ public abstract class PayloadWrapperProcessor implements Consumer<Swagger> {
                 model.getProperties().remove(key);
             }
         }
+        return wrapperName;
+    }
+
+    private String wrapPostBodyParameter(String simpleRef, String moduleName) {
+        String wrapperName = simpleRef + POSTFIX + "_post";
+        ModelImpl originalModel = (ModelImpl) swagger.getDefinitions().get(simpleRef);
+        ModelImpl postModel = new ModelImpl();
+        originalModel.cloneTo(postModel);
+        postModel.setType(originalModel.getType());
+        postModel.setName(originalModel.getName());
+        postModel.setSimple(originalModel.isSimple());
+        postModel.setDescription(originalModel.getDescription());
+        postModel.setExample(originalModel.getExample());
+        postModel.setAdditionalProperties(originalModel.getAdditionalProperties());
+        postModel.setDiscriminator(originalModel.getDiscriminator());
+        postModel.setXml(originalModel.getXml());
+        postModel.setDefaultValue(originalModel.getDefaultValue());
+        Set<String> keySet = originalModel.getProperties().keySet();
+        for (String key : keySet) {
+            Property property = originalModel.getProperties().get(key);
+            if (!key.contains(":")) {
+                postModel.addProperty(moduleName + ":" + key, property);
+            } else {
+                postModel.addProperty(key, property);
+            }
+        }
+        swagger.addDefinition(wrapperName, postModel);
         return wrapperName;
     }
 

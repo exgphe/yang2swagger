@@ -153,7 +153,7 @@ public class PathSegment implements Iterable<PathSegment> {
                 localParams = node.getKeyDefinition().stream()
                         .map(k -> {
 
-                            final String name = generateName(k, existingNames);
+                            final String name = k.getLocalName();
 
                             final PathParameter param = new PathParameter()
                                     .name(name);

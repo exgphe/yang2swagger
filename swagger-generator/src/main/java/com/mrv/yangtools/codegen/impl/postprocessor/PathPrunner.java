@@ -123,6 +123,11 @@ public class PathPrunner implements Consumer<Swagger> {
                 return toRemoveByBody(pathName, "POST", post);
             }
 
+            Operation patch = path.getPatch();
+            if (patch != null) {
+                return toRemoveByBody(pathName, "PATCH", patch);
+            }
+
             Operation put = path.getPut();
 
             return put != null && toRemoveByBody(pathName, "PUT", put);
