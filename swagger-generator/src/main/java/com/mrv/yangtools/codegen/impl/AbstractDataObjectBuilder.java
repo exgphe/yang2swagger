@@ -269,6 +269,16 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
             ListSchemaNode ls = (ListSchemaNode) node;
             prop = new ArrayProperty().items(refOrStructure(ls));
             ArrayProperty arrayProp = ((ArrayProperty) prop);
+            Stream<String> keys = ls.getKeyDefinition().stream().map(QName::getLocalName);
+            arrayProp.setVendorExtension("x-key", keys.collect(Collectors.joining(",")));
+//            Property itemsProperty = arrayProp.getItems();
+//            if(itemsProperty instanceof RefProperty) {
+//                Model itemsStructureProperty = swagger.getDefinitions().get(((RefProperty) itemsProperty).getSimpleRef());
+//                keys.forEach(key -> itemsStructureProperty.getProperties().get(key).setRequired(true));
+//            } else {
+//                ObjectProperty itemsStructureProperty = (ObjectProperty) itemsProperty;
+//                keys.forEach(key -> itemsStructureProperty.getProperties().get(key).setRequired(true));
+//            }
             if (node.getConstraints() != null) {
                 if (node.getConstraints().getMaxElements() != null) {
                     arrayProp.setMaxItems(node.getConstraints().getMaxElements());
@@ -277,7 +287,6 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
                     arrayProp.setMinItems(node.getConstraints().getMinElements());
                 }
             }
-            arrayProp.setVendorExtension("x-key", ls.getKeyDefinition().stream().map(QName::getLocalName).collect(Collectors.joining(",")));
         } else if (node instanceof AnyXmlSchemaNode) {
             log.warn("generating swagger string property for any schema type for {}", node.getQName());
             prop = new StringProperty().vendorExtension("x-anyxml", true);
