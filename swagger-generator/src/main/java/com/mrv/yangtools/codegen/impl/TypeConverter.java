@@ -211,7 +211,8 @@ public class TypeConverter {
         }
         if (type instanceof BinaryTypeDefinition) {
             BinaryTypeDefinition binaryType = (BinaryTypeDefinition) type;
-            BinaryProperty binary = new BinaryProperty();
+            StringProperty binary = new StringProperty();
+            binary.setFormat("byte");
             if (binaryType.getLengthConstraints() != null) {
                 Integer currentMax = null;
                 Integer currentMin = null;
@@ -259,11 +260,10 @@ public class TypeConverter {
         }
         if (type instanceof EmptyTypeDefinition) {
             ArrayProperty empty = new ArrayProperty();
-            empty.items(new StringProperty()); // Swagger 2.0 does not have a null type
+            empty.items(new StringProperty().vendorExtension("x-nullable", true)); // Swagger 2.0 does not have a null type
             empty.setMaxItems(1);
             empty.setMinItems(1);
             empty.setVendorExtension("x-empty", true);
-            empty.setVendorExtension("x-nullable", true);
             return empty;
         }
         return new StringProperty();
