@@ -290,8 +290,11 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
         } else if (node instanceof AnyXmlSchemaNode) {
             log.warn("generating swagger string property for any schema type for {}", node.getQName());
             prop = new StringProperty().vendorExtension("x-anyxml", true);
-        } else if (node instanceof AnyDataSchemaNode) {
-            prop = refOrStructure(((AnyDataSchemaNode) node).getSchemaOfAnyData());
+        }
+        else if (node instanceof AnyDataSchemaNode) {
+            if(((AnyDataSchemaNode) node).getSchemaOfAnyData()!=null) {
+                prop = refOrStructure(((AnyDataSchemaNode) node).getSchemaOfAnyData());
+            }
         }
 
         if (prop != null) {
