@@ -119,6 +119,8 @@ public abstract class AbstractPathHandler implements PathHandler {
             path.delete(new DeleteOperationGenerator(pathCtx, dataObjectBuilder).execute(node).tags(tags));
         }
 
+        path.head(GetOperationGenerator.toHead(path.getGet()));
+
         return path;
     }
 

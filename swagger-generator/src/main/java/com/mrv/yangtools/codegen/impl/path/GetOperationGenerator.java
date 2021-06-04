@@ -24,6 +24,8 @@ import org.opendaylight.yangtools.yang.model.api.DataSchemaNode;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @author cmurch@mrv.com
@@ -66,5 +68,15 @@ public class GetOperationGenerator extends OperationGenerator {
         get.response(401, new Response().description("Unauthorized"));
         get.response(404, new Response().description("Not Found"));
         return get;
+    }
+
+    public static Operation toHead(Operation getOperation) {
+        Operation headOperation = new Operation();
+        headOperation.setParameters(getOperation.getParameters());
+        headOperation.setSummary(getOperation.getSummary());
+        headOperation.setDescription(getOperation.getDescription());
+        headOperation.setResponses(getOperation.getResponses().entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> new Response().description(entry.getValue().getDescription()))));
+        headOperation.setTags(getOperation.getTags());
+        return headOperation;
     }
 }

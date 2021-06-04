@@ -57,6 +57,7 @@ class ODLPathHandler extends AbstractPathHandler {
     protected Path operationalOperations(DataSchemaNode node, PathSegment pathCtx) {
         final Path path = new Path();
         path.get(new GetOperationGenerator(pathCtx, dataObjectBuilder).execute(node).tags(tags(pathCtx)));
+        path.head(GetOperationGenerator.toHead(path.getGet()));
         return path;
     }
 
