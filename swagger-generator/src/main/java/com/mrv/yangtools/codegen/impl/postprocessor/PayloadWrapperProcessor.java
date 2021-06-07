@@ -32,6 +32,7 @@ public abstract class PayloadWrapperProcessor implements Consumer<Swagger> {
 
     private void processPath(String key, Path path) {
         if (key.startsWith("/operations")) {
+            processOperation(path.getPost(), toProperty(key), true);
             return;
         }
 
@@ -55,7 +56,7 @@ public abstract class PayloadWrapperProcessor implements Consumer<Swagger> {
 
         operation.getResponses().values().stream()
                 .filter(r -> r.getSchema() instanceof RefProperty)
-                .forEach(r -> wrap(propertyName, r, operation));
+                .forEach(r -> wrap(propertyName, r, operation, isPost));
 
         operation.getParameters().stream()
                 .filter(p -> p instanceof BodyParameter)
@@ -66,9 +67,15 @@ public abstract class PayloadWrapperProcessor implements Consumer<Swagger> {
 
     }
 
-    private void wrap(String propertyName, Response r, Operation operation) {
+    private void wrap(String propertyName, Response r, Operation operation, Boolean isRpcOutput) {
         RefProperty prop = (RefProperty) r.getSchema();
-        String wrapperName = wrap(propertyName, prop.getSimpleRef(), operation.getTags().get(0));
+        String wrapperName;
+        if (isRpcOutput) {
+            wrapperName = wrapPostBodyParameter(prop.getSimpleRef(), operation.getTags().get(0));
+            swagger.getDefinitions().remove(prop.getSimpleRef());
+        } else {
+            wrapperName = wrap(propertyName, prop.getSimpleRef(), operation.getTags().get(0));
+        }
         r.setSchema(new RefProperty(wrapperName));
     }
 

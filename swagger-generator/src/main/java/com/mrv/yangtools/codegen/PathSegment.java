@@ -14,6 +14,7 @@ package com.mrv.yangtools.codegen;
 import com.mrv.yangtools.codegen.impl.TypeConverter;
 import io.swagger.models.parameters.Parameter;
 import io.swagger.models.parameters.PathParameter;
+import io.swagger.models.properties.StringProperty;
 import org.opendaylight.yangtools.yang.common.QName;
 import org.opendaylight.yangtools.yang.model.api.LeafSchemaNode;
 import org.opendaylight.yangtools.yang.model.api.ListSchemaNode;
@@ -182,7 +183,10 @@ public class PathSegment implements Iterable<PathSegment> {
                                 final LeafSchemaNode kN = keyNode.get();
                                 param
                                         .description("Id of " + node.getQName().getLocalName())
-                                        .property(converter.convert(kN.getType(), kN));
+                                        .property(
+//                                                converter.convert(kN.getType(), kN)
+                                                new StringProperty() // Using string because supports for path parameters of other types are very buggy.
+                                        );
                             }
                             return param;
                         })

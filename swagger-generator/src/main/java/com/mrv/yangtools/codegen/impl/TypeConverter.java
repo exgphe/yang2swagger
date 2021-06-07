@@ -72,13 +72,12 @@ public class TypeConverter {
                 decimalProperty.setVendorExtension("x-range", decimalTypeDefinition.getRangeConstraints());
             }
             if (decimalTypeDefinition.getFractionDigits() != null) {
-                // TODO Not Clear what fraction digits mean, relax this restriction by now
-                // decimalProperty.setPattern("^[+-]?((\\d+(\\.\\d{0," + decimalTypeDefinition.getFractionDigits() + "})?)|(\\.\\d{1," + decimalTypeDefinition.getFractionDigits() + "}))$");
+                decimalProperty.setPattern("^[+-]?((\\d+(\\.\\d{0," + decimalTypeDefinition.getFractionDigits() + "})?)|(\\.\\d{1," + decimalTypeDefinition.getFractionDigits() + "}))$");
                 decimalProperty.setVendorExtension("x-fraction-digits", decimalTypeDefinition.getFractionDigits());
-            }
-//            else {
+            } else {
+                // Shouldn't happen according to RFC7950
                 decimalProperty.setPattern("^[+-]?((\\d+(\\.\\d*)?)|(\\.\\d+))$");
-//            }
+            }
             return decimalProperty;
         }
 

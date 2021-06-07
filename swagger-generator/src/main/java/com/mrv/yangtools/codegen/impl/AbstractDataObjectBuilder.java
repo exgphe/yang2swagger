@@ -237,7 +237,6 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
                 }).collect(Collectors.toMap(pair -> pair.name, pair -> pair.property, (oldV, newV) -> newV));
 
         HashMap<String, Property> result = new HashMap<>();
-
         result.putAll(properties);
         result.putAll(choiceProperties);
         return result;
@@ -267,26 +266,7 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
             prop = refOrStructure((ContainerSchemaNode) node);
         } else if (node instanceof ListSchemaNode) {
             ListSchemaNode ls = (ListSchemaNode) node;
-            prop = new ArrayProperty().items(refOrStructure(ls));
-            ArrayProperty arrayProp = ((ArrayProperty) prop);
-            Stream<String> keys = ls.getKeyDefinition().stream().map(QName::getLocalName);
-            arrayProp.setVendorExtension("x-key", keys.collect(Collectors.joining(",")));
-//            Property itemsProperty = arrayProp.getItems();
-//            if(itemsProperty instanceof RefProperty) {
-//                Model itemsStructureProperty = swagger.getDefinitions().get(((RefProperty) itemsProperty).getSimpleRef());
-//                keys.forEach(key -> itemsStructureProperty.getProperties().get(key).setRequired(true));
-//            } else {
-//                ObjectProperty itemsStructureProperty = (ObjectProperty) itemsProperty;
-//                keys.forEach(key -> itemsStructureProperty.getProperties().get(key).setRequired(true));
-//            }
-            if (node.getConstraints() != null) {
-                if (node.getConstraints().getMaxElements() != null) {
-                    arrayProp.setMaxItems(node.getConstraints().getMaxElements());
-                }
-                if (node.getConstraints().getMinElements() != null) {
-                    arrayProp.setMinItems(node.getConstraints().getMinElements());
-                }
-            }
+            prop = refOrStructure(ls);
         } else if (node instanceof AnyXmlSchemaNode) {
             log.warn("generating swagger string property for any schema type for {}", node.getQName());
             prop = new AbstractProperty() {
@@ -319,7 +299,11 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
         //return BindingMapping.getPropertyName(node.getQName().getLocalName());
         String name = node.getQName().getLocalName();
         if (node.isAugmenting()) {
-            name = moduleName(node) + ":" + name;
+            String moduleName = moduleName(node);
+            QName parentQName = node.getPath().getParent().getLastComponent();
+            if (!ctx.findModuleByNamespaceAndRevision(parentQName.getNamespace(), parentQName.getRevision()).getName().equals(moduleName)) {
+                name = moduleName + ":" + name;
+            }
         }
         return name;
     }

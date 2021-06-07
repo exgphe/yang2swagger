@@ -48,29 +48,28 @@ public class Main {
 
     @Option(name = "-api-version", usage = "Version of api generated - default 1.0", metaVar = "file")
     public String apiVersion = "1.0";
-	
-	// RESTCONF uses yang-data+json or yang-data+xml as the content type.
-	@Option(name= "-content-type", usage = "Content type the API generates / consumes - default application/yang-data+json")
-	public String contentType = "application/yang-data+json";
+
+    // RESTCONF uses yang-data+json or yang-data+xml as the content type.
+    @Option(name = "-content-type", usage = "Content type the API generates / consumes - default application/yang-data+json")
+    public String contentType = "application/yang-data+json";
 
     @Option(name = "-simplify-hierarchy", usage = "Use it to generate Swagger which with simplified inheritence model which can be used with standard code generators. Default false")
     public boolean simplified = false;
 
-    @Option(name = "-use-namespaces", usage="Use namespaces in resource URI")
-    public boolean useNamespaces = false;
+    //    @Option(name = "-use-namespaces", usage="Use namespaces in resource URI")
+    public boolean useNamespaces = true; // Should always be true according to RFC 7951!
 
-    @Option(name = "-fullCrud", usage="If the flag is set to false path are generated for GET operations only. Default true")
+    @Option(name = "-fullCrud", usage = "If the flag is set to false path are generated for GET operations only. Default true")
     public boolean fullCrud = true;
 
-    @Option(name="-elements", usage="Define YANG elements to focus on. Defaul DATA + RPC")
+    @Option(name = "-elements", usage = "Define YANG elements to focus on. Defaul DATA + RPC")
     public ElementType elementType = ElementType.DATA_AND_RPC;
 
-    @Option(name = "-authentication", usage="Authentication definition")
+    @Option(name = "-authentication", usage = "Authentication definition")
     public AuthenticationMechanism authenticationMechanism = AuthenticationMechanism.NONE;
 
-    @Option(name = "-strategy", usage="Use unpacking strategy")
-    public SwaggerGenerator.Strategy strategy = SwaggerGenerator.Strategy.optimizing;
-
+    @Option(name = "-strategy", usage = "Use unpacking strategy")
+    public SwaggerGenerator.Strategy strategy = SwaggerGenerator.Strategy.unpacking;
 
 
     public enum ElementType {
@@ -112,7 +111,7 @@ public class Main {
 
         final SchemaContext context = buildSchemaContext(yangDir, p -> matcher.matches(p.getFileName()));
 
-        if(log.isInfoEnabled()) {
+        if (log.isInfoEnabled()) {
             String modulesSting = context.getModules().stream().map(ModuleIdentifier::getName).collect(Collectors.joining(", "));
 
             log.info("Modules found in the {} are {}", yangDir, modulesSting);
@@ -122,14 +121,14 @@ public class Main {
                 .collect(Collectors.toSet());
 
         PathHandlerBuilder pathHandler = new PathHandlerBuilder();
-        if(!fullCrud) {
+        if (!fullCrud) {
             pathHandler.withoutFullCrud();
         }
-        if(useNamespaces)
+        if (useNamespaces)
             pathHandler = pathHandler.useModuleName();
 
         final SwaggerGenerator generator = new SwaggerGenerator(context, toGenerate, strategy)
-        		.version(apiVersion)
+                .version(apiVersion)
                 .format(outputFormat).consumes(contentType).produces(contentType)
                 .host("localhost:1234")
                 .basePath("/restconf")
@@ -139,11 +138,11 @@ public class Main {
         generator
                 .appendPostProcessor(new CollapseTypes());
 
-        if(AuthenticationMechanism.BASIC.equals(authenticationMechanism)) {
+        if (AuthenticationMechanism.BASIC.equals(authenticationMechanism)) {
             generator.appendPostProcessor(new AddSecurityDefinitions().withSecurityDefinition("api_sec", new BasicAuthDefinition()));
         }
 
-        if(simplified) {
+        if (simplified) {
             generator.appendPostProcessor(new SingleParentInheritenceModel());
         }
 
@@ -155,7 +154,7 @@ public class Main {
 
     private SchemaContext buildSchemaContext(String dir, Predicate<Path> accept)
             throws ReactorException {
-        if(dir.contains(File.pathSeparator)) {
+        if (dir.contains(File.pathSeparator)) {
             return ContextHelper.getFromDir(Arrays.stream(dir.split(File.pathSeparator)).map(s -> FileSystems.getDefault().getPath(s)), accept);
         } else {
             return ContextHelper.getFromDir(Stream.of(FileSystems.getDefault().getPath(dir)), accept);
@@ -163,7 +162,7 @@ public class Main {
     }
 
     private SwaggerGenerator.Elements[] map(ElementType elementType) {
-        switch(elementType) {
+        switch (elementType) {
             case DATA:
                 return new SwaggerGenerator.Elements[]{SwaggerGenerator.Elements.DATA};
             case RPC:
