@@ -74,7 +74,7 @@ public class UnpackingDataObjectsBuilder extends AbstractDataObjectBuilder {
             itemsModel.setProperties(properties);
             RefProperty itemsRef = new RefProperty();
             itemsRef.set$ref(nodeName + "Item");
-            swagger.getDefinitions().put(itemsRef.getSimpleRef(), itemsModel);
+            swagger.addDefinition(itemsRef.getSimpleRef(), itemsModel);
             arrayModel.setItems(itemsRef);
             Stream<String> keys = listSchemaNode.getKeyDefinition().stream().map(QName::getLocalName);
             arrayModel.setVendorExtension("x-key", keys.collect(Collectors.joining(",")));
