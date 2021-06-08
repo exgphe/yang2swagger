@@ -94,7 +94,7 @@ public class TypeConverter {
                     }
                 } else {
                     longInteger.setVendorExtension("x-type", "uint64");
-                    longInteger.setPattern("^([1-9][0-9]*)$");
+                    longInteger.setPattern("^([0-9]*)$");
                     UnsignedIntegerTypeDefinition integerTypeDefinition = ((UnsignedIntegerTypeDefinition) baseType);
                     if (integerTypeDefinition.getRangeConstraints() != null) {
                         longInteger.setVendorExtension("x-range", integerTypeDefinition.getRangeConstraints());

@@ -64,11 +64,18 @@ public class UnpackingDataObjectsBuilder extends AbstractDataObjectBuilder {
     public <T extends SchemaNode & DataNodeContainer> Model build(T node) {
         ModelImpl model;
         Map<String, Property> properties = structure(node);
+        String nodeName = getName(node);
         if (node instanceof ListSchemaNode) {
             ListSchemaNode listSchemaNode = (ListSchemaNode) node;
             model = new ArrayModelImpl();
             ArrayModelImpl arrayModel = (ArrayModelImpl) model;
-            arrayModel.setItems(new ObjectProperty().properties(properties));
+            ModelImpl itemsModel = new ModelImpl();
+            itemsModel.setType("object");
+            itemsModel.setProperties(properties);
+            RefProperty itemsRef = new RefProperty();
+            itemsRef.set$ref(nodeName + "Item");
+            swagger.getDefinitions().put(itemsRef.getSimpleRef(), itemsModel);
+            arrayModel.setItems(itemsRef);
             Stream<String> keys = listSchemaNode.getKeyDefinition().stream().map(QName::getLocalName);
             arrayModel.setVendorExtension("x-key", keys.collect(Collectors.joining(",")));
             //            if(itemsProperty instanceof RefProperty) {
@@ -92,7 +99,7 @@ public class UnpackingDataObjectsBuilder extends AbstractDataObjectBuilder {
         }
         model.description(desc(node));
 
-        built.add(getName(node));
+        built.add(nodeName);
 
         return model;
     }
