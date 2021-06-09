@@ -13,7 +13,6 @@ package com.mrv.yangtools.codegen;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.mrv.yangtools.codegen.impl.AnnotatingTypeConverter;
 import com.mrv.yangtools.codegen.impl.ModuleUtils;
@@ -23,8 +22,6 @@ import com.mrv.yangtools.codegen.impl.postprocessor.ReplaceEmptyWithParent;
 import com.mrv.yangtools.codegen.impl.postprocessor.SortComplexModels;
 import com.mrv.yangtools.common.SwaggerUtils;
 import io.swagger.models.Info;
-import io.swagger.models.RefModel;
-import io.swagger.models.Response;
 import io.swagger.models.Swagger;
 import org.opendaylight.yangtools.yang.model.api.*;
 import org.slf4j.Logger;
@@ -418,7 +415,7 @@ public class SwaggerGenerator {
 
                 handler.path(cN, pathCtx);
                 cN.getChildNodes().forEach(n -> generate(n, depth - 1));
-                dataObjectsBuilder.addModel(cN);
+                dataObjectsBuilder.addModel(cN, false);
 
                 pathCtx = pathCtx.drop();
             } else if (node instanceof ListSchemaNode) {
@@ -433,7 +430,7 @@ public class SwaggerGenerator {
 
                 handler.path(lN, pathCtx);
                 lN.getChildNodes().forEach(n -> generate(n, depth - 1));
-                dataObjectsBuilder.addModel(lN);
+                dataObjectsBuilder.addModel(lN, false);
 
                 pathCtx = pathCtx.drop();
             } else if (node instanceof ChoiceSchemaNode) {

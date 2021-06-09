@@ -61,7 +61,7 @@ public class DataObjectsBuilderTest {
         SchemaNode c1 = DataNodeHelper.stream(groupings).filter(n -> n.getQName().getLocalName().equals("c1")).findFirst().orElseThrow(IllegalArgumentException::new);
         //when
         builder.processModule(groupings);
-        builder.addModel((ListEffectiveStatementImpl) c1);
+        builder.addModel((ListEffectiveStatementImpl) c1, false);
         //then
         verify(swagger).addDefinition(eq("with.groupings.groupingroot.C1"), any(Model.class));
     }

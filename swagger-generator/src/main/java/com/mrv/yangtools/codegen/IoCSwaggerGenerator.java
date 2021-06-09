@@ -397,7 +397,7 @@ public class IoCSwaggerGenerator {
 
                 handler.path(cN, pathCtx);
                 cN.getChildNodes().forEach(n -> generate(n, depth-1));
-                dataObjectsBuilder.addModel(cN);
+                dataObjectsBuilder.addModel(cN, false);
 
                 pathCtx = pathCtx.drop();
             } else if(node instanceof ListSchemaNode) {
@@ -412,7 +412,7 @@ public class IoCSwaggerGenerator {
 
                 handler.path(lN, pathCtx);
                 lN.getChildNodes().forEach(n -> generate(n, depth-1));
-                dataObjectsBuilder.addModel(lN);
+                dataObjectsBuilder.addModel(lN, false);
 
                 pathCtx = pathCtx.drop();
             } else if (node instanceof ChoiceSchemaNode) {

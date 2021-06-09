@@ -182,7 +182,7 @@ public class OptimizingDataObjectBuilder extends AbstractDataObjectBuilder {
 
     @SuppressWarnings("unchecked")
     @Override
-    protected <T extends DataSchemaNode & DataNodeContainer> Property refOrStructure(T node) {
+    protected <T extends DataSchemaNode & DataNodeContainer> Property refOrStructure(T node, Boolean isRpc) {
         String definitionId = getDefinitionId(node);
         T effectiveNode = (T) getEffectiveChild(node.getQName());
 
@@ -199,13 +199,13 @@ public class OptimizingDataObjectBuilder extends AbstractDataObjectBuilder {
 
             if(! existingModels.containsKey(effectiveNode)) {
                 log.debug("adding referenced model {} for node {} ", definitionId, effectiveNode);
-                addModel(effectiveNode, getName(effectiveNode));
+                addModel(effectiveNode, getName(effectiveNode), false);
             } else {
                 return prop;
             }
         } else if(existingModel(node) == null) {
             log.debug("adding referenced model {} for node {} ", definitionId, node);
-            addModel(node, getName(node));
+            addModel(node, getName(node), false);
         }
 
         return prop;
@@ -213,7 +213,7 @@ public class OptimizingDataObjectBuilder extends AbstractDataObjectBuilder {
 
 
     @Override
-    public <T extends SchemaNode & DataNodeContainer> Model build(T node) {
+    public <T extends SchemaNode & DataNodeContainer> Model build(T node, Boolean isRpc) {
         if(isTreeAugmented.test(node)) {
             return model(node);
         }
@@ -422,8 +422,8 @@ public class OptimizingDataObjectBuilder extends AbstractDataObjectBuilder {
     }
 
     @Override
-    public <T extends SchemaNode & DataNodeContainer> void addModel(T node, String name) {
-        super.addModel(node, name);
+    public <T extends SchemaNode & DataNodeContainer> void addModel(T node, String name, Boolean isRpc) {
+        super.addModel(node, name, isRpc);
     }
 
 
@@ -487,7 +487,7 @@ public class OptimizingDataObjectBuilder extends AbstractDataObjectBuilder {
 
                 if (existingModel(def) == null) {
                     log.debug("adding model {} for grouping", groupingIdx);
-                    addModel(def, getName(def));
+                    addModel(def, getName(def), false);
                 }
                 models.add(refModel);
             });

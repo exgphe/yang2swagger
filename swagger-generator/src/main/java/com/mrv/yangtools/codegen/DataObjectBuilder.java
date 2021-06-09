@@ -26,11 +26,12 @@ import org.opendaylight.yangtools.yang.model.api.type.EnumTypeDefinition;
 public interface DataObjectBuilder extends DataObjectRepo {
     /**
      * Build model for a given node
-     * @param node for which model is to be build
      * @param <T> composed type
+     * @param node for which model is to be build
+     * @param isRpc
      * @return model for node
      */
-    <T extends SchemaNode & DataNodeContainer> Model build(T node);
+    <T extends SchemaNode & DataNodeContainer> Model build(T node, Boolean isRpc);
 
     /**
      * Pre-process module
@@ -40,12 +41,13 @@ public interface DataObjectBuilder extends DataObjectRepo {
 
     /**
      * Typically to build model and store it internally (i.e. in {@link Swagger} models definition
-     * @param node to build model for and referencing to swagger definitions
      * @param <T> type
+     * @param node to build model for and referencing to swagger definitions
+     * @param isRpc
      */
-    <T extends SchemaNode & DataNodeContainer> void addModel(T node);
+    <T extends SchemaNode & DataNodeContainer> void addModel(T node, Boolean isRpc);
 
-    <T extends SchemaNode & DataNodeContainer> void addModel(T node, String definitionId);
+    <T extends SchemaNode & DataNodeContainer> void addModel(T node, String definitionId, Boolean isRpc);
 
     /**
      * Add model for enum

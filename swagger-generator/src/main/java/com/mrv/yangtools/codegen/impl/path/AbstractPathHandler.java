@@ -5,7 +5,6 @@ import com.mrv.yangtools.codegen.impl.RpcContainerSchemaNode;
 
 import io.swagger.models.*;
 import io.swagger.models.parameters.BodyParameter;
-import io.swagger.models.properties.Property;
 import io.swagger.models.properties.RefProperty;
 
 import org.opendaylight.yangtools.yang.model.api.ContainerSchemaNode;
@@ -49,10 +48,10 @@ public abstract class AbstractPathHandler implements PathHandler {
     }
 
     @Override
-    public void path(RpcDefinition rcp, PathSegment pathCtx) {
-        ContainerSchemaNode input = rcp.getInput();
-        ContainerSchemaNode output = rcp.getOutput();
-        ContainerSchemaNode root = new RpcContainerSchemaNode(rcp);
+    public void path(RpcDefinition rpc, PathSegment pathCtx) {
+        ContainerSchemaNode input = rpc.getInput();
+        ContainerSchemaNode output = rpc.getOutput();
+        ContainerSchemaNode root = new RpcContainerSchemaNode(rpc);
 
         input = input.getChildNodes().isEmpty() ? null : input;
         output = output.getChildNodes().isEmpty() ? null : output;
@@ -63,7 +62,7 @@ public abstract class AbstractPathHandler implements PathHandler {
 
         post.tag(module.getName());
         if (input != null) {
-            dataObjectBuilder.addModel(input);
+            dataObjectBuilder.addModel(input, true);
 
             ModelImpl inputModel = new ModelImpl();
             inputModel.addProperty(module.getName() + ":input", new RefProperty(dataObjectBuilder.getDefinitionId(input)));
@@ -86,7 +85,7 @@ public abstract class AbstractPathHandler implements PathHandler {
 
             RefProperty refProperty = new RefProperty();
             refProperty.set$ref(dataObjectBuilder.getDefinitionId(root));
-            dataObjectBuilder.addModel(root);
+            dataObjectBuilder.addModel(root, true);
             post.response(200, new Response()
                     .schema(refProperty)
                     .description(description));

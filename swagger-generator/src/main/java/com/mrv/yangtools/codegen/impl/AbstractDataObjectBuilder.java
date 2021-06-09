@@ -207,13 +207,19 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
         return property;
     }
 
-
     protected Map<String, Property> structure(DataNodeContainer node) {
-        return structure(node, x -> true, x -> true);
+        return structure(node, false);
     }
 
+    protected Map<String, Property> structure(DataNodeContainer node, Boolean isRpc) {
+        return structure(node, x -> true, x -> true, isRpc);
+    }
 
     protected Map<String, Property> structure(DataNodeContainer node, Predicate<DataSchemaNode> acceptNode, Predicate<DataSchemaNode> acceptChoice) {
+        return structure(node, acceptNode, acceptChoice, false);
+    }
+
+    protected Map<String, Property> structure(DataNodeContainer node, Predicate<DataSchemaNode> acceptNode, Predicate<DataSchemaNode> acceptChoice, Boolean isRpc) {
 
         Predicate<DataSchemaNode> choiceP = c -> c instanceof ChoiceSchemaNode;
 
@@ -221,7 +227,7 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
         // thus we need to apply collision strategy to override with the last attribute available
         Map<String, Property> properties = node.getChildNodes().stream()
                 .filter(choiceP.negate().and(acceptNode)) // choices handled elsewhere
-                .map(this::prop).collect(Collectors.toMap(pair -> pair.name, pair -> pair.property, (oldV, newV) -> newV));
+                .map(n -> this.prop(n, isRpc)).collect(Collectors.toMap(pair -> pair.name, pair -> pair.property, (oldV, newV) -> newV));
 
         Map<String, Property> choiceProperties = node.getChildNodes().stream()
                 .filter(choiceP.and(acceptChoice)) // handling choices
@@ -229,7 +235,7 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
                     ChoiceSchemaNode choice = (ChoiceSchemaNode) c;
                     Stream<Pair> streamOfPairs = choice.getCases().stream()
                             .flatMap(_case -> _case.getChildNodes().stream().map(sc -> {
-                                Pair prop = prop(sc);
+                                Pair prop = prop(sc, isRpc);
                                 assignCaseMetadata(prop.property, choice, _case);
                                 return prop;
                             }));
@@ -243,6 +249,10 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
     }
 
     protected Pair prop(DataSchemaNode node) {
+        return prop(node, false);
+    }
+
+    protected Pair prop(DataSchemaNode node, Boolean isRpc) {
         final String propertyName = getPropertyName(node);
 
         Property prop = null;
@@ -263,10 +273,33 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
             LeafSchemaNode lN = (LeafSchemaNode) node;
             prop = getPropertyByType(lN);
         } else if (node instanceof ContainerSchemaNode) {
-            prop = refOrStructure((ContainerSchemaNode) node);
+            prop = refOrStructure((ContainerSchemaNode) node, isRpc);
         } else if (node instanceof ListSchemaNode) {
             ListSchemaNode ls = (ListSchemaNode) node;
-            prop = refOrStructure(ls);
+            if (isRpc) {
+                prop = new ArrayProperty().items(refOrStructure(ls, isRpc));
+                ArrayProperty arrayProp = ((ArrayProperty) prop);
+                Stream<String> keys = ls.getKeyDefinition().stream().map(QName::getLocalName);
+                arrayProp.setVendorExtension("x-key", keys.collect(Collectors.joining(",")));
+//            Property itemsProperty = arrayProp.getItems();
+//            if(itemsProperty instanceof RefProperty) {
+//                Model itemsStructureProperty = swagger.getDefinitions().get(((RefProperty) itemsProperty).getSimpleRef());
+//                keys.forEach(key -> itemsStructureProperty.getProperties().get(key).setRequired(true));
+//            } else {
+//                ObjectProperty itemsStructureProperty = (ObjectProperty) itemsProperty;
+//                keys.forEach(key -> itemsStructureProperty.getProperties().get(key).setRequired(true));
+//            }
+                if (node.getConstraints() != null) {
+                    if (node.getConstraints().getMaxElements() != null) {
+                        arrayProp.setMaxItems(node.getConstraints().getMaxElements());
+                    }
+                    if (node.getConstraints().getMinElements() != null) {
+                        arrayProp.setMinItems(node.getConstraints().getMinElements());
+                    }
+                }
+            } else {
+                prop = refOrStructure(ls, isRpc);
+            }
         } else if (node instanceof AnyXmlSchemaNode) {
             log.warn("generating swagger string property for any schema type for {}", node.getQName());
             prop = new AbstractProperty() {
@@ -313,7 +346,7 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
         return module.getName();
     }
 
-    protected abstract <T extends DataSchemaNode & DataNodeContainer> Property refOrStructure(T node);
+    protected abstract <T extends DataSchemaNode & DataNodeContainer> Property refOrStructure(T node, Boolean isRpc);
 
     private static void assignCaseMetadata(Property property, ChoiceSchemaNode choice, ChoiceCaseNode aCase) {
         String choiceName = choice.getQName().getLocalName();
@@ -325,15 +358,16 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
     /**
      * Add model to referenced swagger for given node. All related models are added as well if needed.
      *
+     * @param <T>       type of the node
      * @param node      for which build a node
      * @param modelName model name
-     * @param <T>       type of the node
+     * @param isRpc
      */
     @Override
-    public <T extends SchemaNode & DataNodeContainer> void addModel(T node, String modelName) {
+    public <T extends SchemaNode & DataNodeContainer> void addModel(T node, String modelName, Boolean isRpc) {
 
 
-        Model model = build(node);
+        Model model = build(node, isRpc);
 
 
         if (swagger.getDefinitions() != null && swagger.getDefinitions().containsKey(modelName)) {
@@ -346,8 +380,8 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
         swagger.addDefinition(modelName, model);
     }
 
-    public <T extends SchemaNode & DataNodeContainer> void addModel(T node) {
-        addModel(node, getName(node));
+    public <T extends SchemaNode & DataNodeContainer> void addModel(T node, Boolean isRpc) {
+        addModel(node, getName(node), isRpc);
     }
 
 

@@ -57,13 +57,14 @@ public class UnpackingDataObjectsBuilder extends AbstractDataObjectBuilder {
     /**
      * Build Swagger model for given Yang data node
      *
-     * @param node for which we want to build model
      * @param <T>  YANG node type
+     * @param node for which we want to build model
+     * @param isRpc
      * @return Swagger model
      */
-    public <T extends SchemaNode & DataNodeContainer> Model build(T node) {
+    public <T extends SchemaNode & DataNodeContainer> Model build(T node, Boolean isRpc) {
         ModelImpl model;
-        Map<String, Property> properties = structure(node);
+        Map<String, Property> properties = structure(node, isRpc);
         String nodeName = getName(node);
         if (node instanceof ListSchemaNode) {
             ListSchemaNode listSchemaNode = (ListSchemaNode) node;
@@ -115,7 +116,7 @@ public class UnpackingDataObjectsBuilder extends AbstractDataObjectBuilder {
         return names.get(node);
     }
 
-    protected <T extends DataSchemaNode & DataNodeContainer> Property refOrStructure(T node) {
+    protected <T extends DataSchemaNode & DataNodeContainer> Property refOrStructure(T node, Boolean isRpc) {
         final boolean useReference = built.contains(getName(node));
         Property prop;
         if (useReference) {
@@ -124,7 +125,7 @@ public class UnpackingDataObjectsBuilder extends AbstractDataObjectBuilder {
             prop = new RefProperty(definitionId);
         } else {
             log.debug("submodel for {}", getName(node));
-            prop = new ObjectProperty(structure(node, x -> true, x -> true));
+            prop = new ObjectProperty(structure(node, x -> true, x -> true, isRpc));
         }
         return prop;
     }
