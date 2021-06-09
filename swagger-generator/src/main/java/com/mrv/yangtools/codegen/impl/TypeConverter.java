@@ -101,11 +101,14 @@ public class TypeConverter {
                     }
                 }
                 return longInteger;
-            } else if (BaseTypes.isUint32(baseType)) {
-                integer.setFormat("int64");
-            } else {
-                integer.setFormat("int32");
             }
+            else
+//                if (BaseTypes.isUint32(baseType)) { // TODO BaseTypes.isUint32 has bug
+                integer.setFormat("int64");
+//            }
+//            else {
+//                integer.setFormat("int32");
+//            }
             if (baseType instanceof IntegerTypeDefinition) {
                 IntegerTypeDefinition integerTypeDefinition = ((IntegerTypeDefinition) baseType);
                 if (integerTypeDefinition.getRangeConstraints() != null) {
