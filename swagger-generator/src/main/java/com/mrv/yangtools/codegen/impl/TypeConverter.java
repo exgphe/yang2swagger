@@ -179,9 +179,9 @@ public class TypeConverter {
             StringProperty string = new StringProperty();
             if (stringType.getPatternConstraints() != null && !stringType.getPatternConstraints().isEmpty()) {
                 if (stringType.getPatternConstraints().size() == 1) {
-                    string.setPattern(stringType.getPatternConstraints().get(0).getRegularExpression());
+                    string.setPattern(stringType.getPatternConstraints().get(0).getRawRegularExpression());
                 } else {
-                    string.setPattern(stringType.getPatternConstraints().stream().map(patternConstraint -> "(?=" + patternConstraint.getRegularExpression() + ")").collect(Collectors.joining()));
+                    string.setPattern(stringType.getPatternConstraints().stream().map(patternConstraint -> "(?=" + patternConstraint.getRawRegularExpression() + ")").collect(Collectors.joining()));
                 }
             }
             if (stringType.getLengthConstraints() != null) {
