@@ -57,8 +57,8 @@ public class UnpackingDataObjectsBuilder extends AbstractDataObjectBuilder {
     /**
      * Build Swagger model for given Yang data node
      *
-     * @param <T>  YANG node type
-     * @param node for which we want to build model
+     * @param <T>   YANG node type
+     * @param node  for which we want to build model
      * @param isRpc
      * @return Swagger model
      */
@@ -77,8 +77,10 @@ public class UnpackingDataObjectsBuilder extends AbstractDataObjectBuilder {
             itemsRef.set$ref(nodeName + "Item");
             swagger.addDefinition(itemsRef.getSimpleRef(), itemsModel);
             arrayModel.setItems(itemsRef);
-            Stream<String> keys = listSchemaNode.getKeyDefinition().stream().map(QName::getLocalName);
-            arrayModel.setVendorExtension("x-key", keys.collect(Collectors.joining(",")));
+            if (!listSchemaNode.getKeyDefinition().isEmpty()) {
+                Stream<String> keys = listSchemaNode.getKeyDefinition().stream().map(QName::getLocalName);
+                arrayModel.setVendorExtension("x-key", keys.collect(Collectors.joining(",")));
+            }
             //            if(itemsProperty instanceof RefProperty) {
 //                Model itemsStructureProperty = swagger.getDefinitions().get(((RefProperty) itemsProperty).getSimpleRef());
 //                keys.forEach(key -> itemsStructureProperty.getProperties().get(key).setRequired(true));

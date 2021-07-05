@@ -279,8 +279,10 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
             if (isRpc) {
                 prop = new ArrayProperty().items(refOrStructure(ls, isRpc));
                 ArrayProperty arrayProp = ((ArrayProperty) prop);
-                Stream<String> keys = ls.getKeyDefinition().stream().map(QName::getLocalName);
-                arrayProp.setVendorExtension("x-key", keys.collect(Collectors.joining(",")));
+                if (!ls.getKeyDefinition().isEmpty()) {
+                    Stream<String> keys = ls.getKeyDefinition().stream().map(QName::getLocalName);
+                    arrayProp.setVendorExtension("x-key", keys.collect(Collectors.joining(",")));
+                }
 //            Property itemsProperty = arrayProp.getItems();
 //            if(itemsProperty instanceof RefProperty) {
 //                Model itemsStructureProperty = swagger.getDefinitions().get(((RefProperty) itemsProperty).getSimpleRef());
