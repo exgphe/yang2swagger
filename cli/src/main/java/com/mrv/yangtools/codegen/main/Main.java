@@ -67,6 +67,7 @@ public class Main {
     @Parameter(names = "-strategy", description = "Use unpacking strategy")
     public SwaggerGenerator.Strategy strategy = SwaggerGenerator.Strategy.unpacking;
 
+    public String contentType = "application/yang-data+json";
 
     public enum ElementType {
         DATA, RPC, DATA_AND_RPC;
