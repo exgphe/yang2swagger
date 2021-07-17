@@ -49,10 +49,6 @@ public class Main {
     @Option(name = "-api-version", usage = "Version of api generated - default 1.0", metaVar = "file")
     public String apiVersion = "1.0";
 
-    // RESTCONF uses yang-data+json or yang-data+xml as the content type.
-    @Option(name = "-content-type", usage = "Content type the API generates / consumes - default application/yang-data+json")
-    public String contentType = "application/yang-data+json";
-
     @Option(name = "-simplify-hierarchy", usage = "Use it to generate Swagger which with simplified inheritence model which can be used with standard code generators. Default false")
     public boolean simplified = false;
 
@@ -129,7 +125,9 @@ public class Main {
 
         final SwaggerGenerator generator = new SwaggerGenerator(context, toGenerate, strategy)
                 .version(apiVersion)
-                .format(outputFormat).consumes(contentType).produces(contentType)
+                .format(outputFormat)
+                .consumes("application/yang-data+json").consumes("application/yang-data+xml")
+                .produces("application/yang-data+json").produces("application/yang-data+xml")
                 .host("localhost:1234")
                 .basePath("/restconf")
                 .pathHandler(pathHandler)

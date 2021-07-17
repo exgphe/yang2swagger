@@ -15,6 +15,7 @@ import com.mrv.yangtools.codegen.impl.swagger.ArrayModelImpl;
 import io.swagger.models.Model;
 import io.swagger.models.ModelImpl;
 import io.swagger.models.Swagger;
+import io.swagger.models.Xml;
 import io.swagger.models.properties.ObjectProperty;
 import io.swagger.models.properties.Property;
 import io.swagger.models.properties.RefProperty;
@@ -100,6 +101,7 @@ public class UnpackingDataObjectsBuilder extends AbstractDataObjectBuilder {
             model = new ModelImpl();
             model.setProperties(properties);
         }
+        model.setXml(new Xml().name(node.getQName().getLocalName()).namespace(node.getQName().getNamespace().toString()));
         model.description(desc(node));
 
         built.add(nodeName);
@@ -128,6 +130,7 @@ public class UnpackingDataObjectsBuilder extends AbstractDataObjectBuilder {
         } else {
             log.debug("submodel for {}", getName(node));
             prop = new ObjectProperty(structure(node, x -> true, x -> true, isRpc));
+            prop.setXml(new Xml().name(node.getQName().getLocalName()).namespace(node.getQName().getNamespace().toString()));
         }
         return prop;
     }

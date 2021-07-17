@@ -203,6 +203,7 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
 
         final Property property = converter.convert(lN.getType(), lN);
         property.setDefault(lN.getDefault());
+        property.setXml(new Xml().name(lN.getQName().getLocalName()).namespace(lN.getQName().getNamespace().toString()));
 
         return property;
     }
@@ -261,6 +262,7 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
             LeafListSchemaNode ll = (LeafListSchemaNode) node;
             prop = new ArrayProperty(getPropertyByType(ll));
             ArrayProperty arrayProp = ((ArrayProperty) prop);
+            arrayProp.getItems().setXml(new Xml().name(ll.getQName().getLocalName()).namespace(ll.getQName().getNamespace().toString()));
             if (node.getConstraints() != null) {
                 if (node.getConstraints().getMaxElements() != null) {
                     arrayProp.setMaxItems(node.getConstraints().getMaxElements());
@@ -326,6 +328,7 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
             if (!node.isConfiguration()) {
                 prop.setReadOnly(true);
             }
+            prop.setXml(new Xml().name(node.getQName().getLocalName()).namespace(node.getQName().getNamespace().toString()));
         }
         return new Pair(propertyName, prop);
     }
@@ -390,16 +393,19 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
     @Override
     public String addModel(EnumTypeDefinition enumType) {
         QName qName = enumType.getQName();
+        Xml xml = new Xml().name(qName.getLocalName()).namespace(qName.getNamespace().toString());
 
         //inline enumerations are a special case that needs extra enumeration
         if (qName.getLocalName().equals("enumeration") && enumType.getBaseType() == null) {
             qName = QName.create(qName, enumType.getPath().getParent().getLastComponent().getLocalName() + "-" + qName.getLocalName());
+            xml.setName(enumType.getPath().getParent().getLastComponent().getLocalName());
         }
 
         if (!generatedEnums.containsKey(qName)) {
             log.debug("generating enum model for {}", qName);
             String name = getName(qName);
             ModelImpl enumModel = build(enumType, qName);
+            enumModel.setXml(xml);
             swagger.addDefinition(name, enumModel);
             generatedEnums.put(qName, DEF_PREFIX + name);
         } else {
@@ -414,7 +420,7 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
                 .map(EnumTypeDefinition.EnumPair::getName).collect(Collectors.toList()));
         model.setType("string");
         model.setDescription(enumType.getDescription()); // TODO each enum value has description too
-        if(enumType.getDefaultValue()!=null) model.setDefaultValue(enumType.getDefaultValue().toString());
+        if (enumType.getDefaultValue() != null) model.setDefaultValue(enumType.getDefaultValue().toString());
         model.setReference(getName(qName));
         return model;
     }

@@ -72,7 +72,7 @@ public abstract class PayloadWrapperProcessor implements Consumer<Swagger> {
         String wrapperName;
         if (isRpcOutput) {
             wrapperName = wrapPostBodyParameter(prop.getSimpleRef(), operation.getTags().get(0));
-            swagger.getDefinitions().remove(prop.getSimpleRef());
+//            swagger.getDefinitions().remove(prop.getSimpleRef());
         } else {
             wrapperName = wrap(propertyName, prop.getSimpleRef(), operation.getTags().get(0));
         }
@@ -109,6 +109,7 @@ public abstract class PayloadWrapperProcessor implements Consumer<Swagger> {
     }
 
     private String wrapPostBodyParameter(String simpleRef, String moduleName) {
+        // Add namespace prefixes to all parameters
         String wrapperName = simpleRef + POSTFIX + "_post";
         ModelImpl originalModel = (ModelImpl) swagger.getDefinitions().get(simpleRef);
         ModelImpl postModel = new ModelImpl();
