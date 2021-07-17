@@ -41,7 +41,7 @@ public class Main {
     public File output = null;
 
     @Parameter(description = "List of YANG module names to generate in swagger output")
-    List<String> modules = new ArrayList<>();
+    List<String> modules = null;
 
     @Parameter(names = "-format", description = "Output format of generated file - defaults to yaml with options of json or yaml")
     public SwaggerGenerator.Format outputFormat = SwaggerGenerator.Format.YAML;
