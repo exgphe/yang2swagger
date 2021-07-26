@@ -6,26 +6,26 @@ import io.swagger.models.properties.Property;
 import java.math.BigInteger;
 
 public class EnhancedIntegerProperty extends AbstractProperty implements Property {
-    private Long maximum, minimum;
+    private BigInteger maximum, minimum;
     private Boolean exclusiveMinimum, exclusiveMaximum;
 
     public EnhancedIntegerProperty() {
         setType("integer");
     }
 
-    public Long getMaximum() {
+    public BigInteger getMaximum() {
         return maximum;
     }
 
-    public void setMaximum(Long maximum) {
+    public void setMaximum(BigInteger maximum) {
         this.maximum = maximum;
     }
 
-    public Long getMinimum() {
+    public BigInteger getMinimum() {
         return minimum;
     }
 
-    public void setMinimum(Long minimum) {
+    public void setMinimum(BigInteger minimum) {
         this.minimum = minimum;
     }
 
