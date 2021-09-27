@@ -221,7 +221,7 @@ public class TypeConverter {
             StringProperty binary = new StringProperty();
             binary.setFormat("byte");
             if (binaryType.getLengthConstraints() != null) {
-                List<LengthConstraint> constraints = binaryType.getLengthConstraints().stream().map(c -> new LengthConstraintEffectiveImpl(Math.ceil(c.getMin().longValue() * 4.0 / 3.0), Math.ceil(c.getMax().longValue() * 4.0 / 3.0), c.getDescription(), c.getReference(), c.getErrorAppTag(), c.getErrorMessage())).collect(Collectors.toList());
+                List<LengthConstraint> constraints = binaryType.getLengthConstraints().stream().map(c -> new LengthConstraintEffectiveImpl(Math.ceil(c.getMin().longValue() / 3.0) * 4, Math.ceil(c.getMax().longValue() / 3.0) * 4, c.getDescription(), c.getReference(), c.getErrorAppTag(), c.getErrorMessage())).collect(Collectors.toList());
                 Integer currentMax = null;
                 Integer currentMin = null;
                 for (LengthConstraint lengthConstraint : constraints) {
