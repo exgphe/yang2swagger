@@ -38,9 +38,11 @@ public class TypeConverter {
 
     private SchemaContext ctx;
     private DataObjectBuilder dataObjectBuilder;
+    private ModuleUtils moduleUtils;
 
     public TypeConverter(SchemaContext ctx) {
         this.ctx = ctx;
+        this.moduleUtils = new ModuleUtils(ctx);
     }
 
     private static final Logger log = LoggerFactory.getLogger(TypeConverter.class);
@@ -273,6 +275,13 @@ public class TypeConverter {
             empty.setMinItems(1);
             empty.setVendorExtension("x-empty", true);
             return empty;
+        }
+        if (type instanceof IdentityrefTypeDefinition) {
+            IdentityrefTypeDefinition identityrefTypeDefinition = (IdentityrefTypeDefinition) type;
+            StringProperty identityRefProperty = new StringProperty();
+            identityRefProperty.setEnum(identityrefTypeDefinition.getIdentities().stream().flatMap(identity -> identity.getDerivedIdentities().stream().map(derivedIdentity -> moduleUtils.toModuleName(derivedIdentity.getQName()) + ":" + derivedIdentity.getQName().getLocalName())).collect(Collectors.toList()));
+            identityRefProperty.setVendorExtension("x-identity", true);
+            return identityRefProperty;
         }
         return new StringProperty();
     }
