@@ -1,6 +1,8 @@
 package com.mrv.yangtools.codegen.main;
 
 import java.io.*;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
@@ -148,7 +150,7 @@ public class Main {
         generator.appendPostProcessor(new Rfc4080PayloadWrapper());
 //        generator.appendPostProcessor(new RemoveUnusedDefinitions());
 
-        generator.generate(new OutputStreamWriter(out));
+        generator.generate(new OutputStreamWriter(out, StandardCharsets.UTF_8));
     }
 
     private SchemaContext buildSchemaContext(File dir, Predicate<Path> accept)
