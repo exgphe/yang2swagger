@@ -71,8 +71,11 @@ public class Main {
 
     public String contentType = "application/yang-data+json";
 
+    @Option(name = "-host", usage="")
+    public String host = "localhost:1234";
+
     @Option(name = "-basepath", usage="")
-    public String basePath = "localhost:1234";
+    public String basePath = "/restconf";
 
     public enum ElementType {
         DATA, RPC, DATA_AND_RPC;
@@ -136,7 +139,8 @@ public class Main {
         final SwaggerGenerator generator = new SwaggerGenerator(context, toGenerate, strategy)
         		.version(apiVersion)
                 .format(outputFormat).consumes(contentType).produces(contentType)
-                .host(basePath)
+                .host(host)
+                .basePath(basePath)
                 .pathHandler(pathHandler)
                 .elements(map(elementType));
 
