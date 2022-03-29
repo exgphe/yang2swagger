@@ -71,10 +71,10 @@ public class Main {
 
     public String contentType = "application/yang-data+json";
 
-    @Option(name = "-host", usage="")
+    @Parameter(names = "-host")
     public String host = "localhost:1234";
 
-    @Option(name = "-basepath", usage="")
+    @Parameter(names = "-basepath")
     public String basePath = "/restconf";
 
     public enum ElementType {
@@ -165,7 +165,7 @@ public class Main {
         URI.create(basePath);
     }
 
-    private SchemaContext buildSchemaContext(String dir, Predicate<Path> accept)
+    private SchemaContext buildSchemaContext(File dir, Predicate<Path> accept)
             throws ReactorException {
 //        if (dir.contains(File.pathSeparator)) {
 //            return ContextHelper.getFromDir(Arrays.stream(dir.split(File.pathSeparator)).map(s -> FileSystems.getDefault().getPath(s)), accept);
