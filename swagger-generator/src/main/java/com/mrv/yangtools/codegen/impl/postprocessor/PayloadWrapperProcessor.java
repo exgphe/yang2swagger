@@ -123,13 +123,15 @@ public abstract class PayloadWrapperProcessor implements Consumer<Swagger> {
         postModel.setDiscriminator(originalModel.getDiscriminator());
         postModel.setXml(originalModel.getXml());
         postModel.setDefaultValue(originalModel.getDefaultValue());
-        Set<String> keySet = originalModel.getProperties().keySet();
-        for (String key : keySet) {
-            Property property = originalModel.getProperties().get(key);
-            if (!key.contains(":")) {
-                postModel.addProperty(moduleName + ":" + key, property);
-            } else {
-                postModel.addProperty(key, property);
+        if(originalModel.getProperties()!=null) {
+            Set<String> keySet = originalModel.getProperties().keySet();
+            for (String key : keySet) {
+                Property property = originalModel.getProperties().get(key);
+                if (!key.contains(":")) {
+                    postModel.addProperty(moduleName + ":" + key, property);
+                } else {
+                    postModel.addProperty(key, property);
+                }
             }
         }
         swagger.addDefinition(wrapperName, postModel);

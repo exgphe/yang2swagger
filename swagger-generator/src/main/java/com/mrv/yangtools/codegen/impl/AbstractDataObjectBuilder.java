@@ -229,23 +229,30 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
         Map<String, Property> properties = node.getChildNodes().stream()
                 .filter(choiceP.negate().and(acceptNode)) // choices handled elsewhere
                 .map(n -> this.prop(n, isRpc)).collect(Collectors.toMap(pair -> pair.name, pair -> pair.property, (oldV, newV) -> newV));
+        HashMap<String, Property> result = new HashMap<>(properties);
+        List<ChoiceSchemaNode> choiceSchemaNodes = node.getChildNodes().stream()
+                .filter(choiceP.and(acceptChoice)).map(n -> (ChoiceSchemaNode) n).collect(Collectors.toList());
+        for (ChoiceSchemaNode choiceSchemaNode : choiceSchemaNodes) {
+            result.putAll(handleChoices(choiceSchemaNode, isRpc));
+        }
+        return result;
+    }
 
-        Map<String, Property> choiceProperties = node.getChildNodes().stream()
-                .filter(choiceP.and(acceptChoice)) // handling choices
-                .flatMap(c -> {
-                    ChoiceSchemaNode choice = (ChoiceSchemaNode) c;
-                    Stream<Pair> streamOfPairs = choice.getCases().stream()
-                            .flatMap(_case -> _case.getChildNodes().stream().map(sc -> {
-                                Pair prop = prop(sc, isRpc);
-                                assignCaseMetadata(prop.property, choice, _case);
-                                return prop;
-                            }));
-                    return streamOfPairs;
-                }).collect(Collectors.toMap(pair -> pair.name, pair -> pair.property, (oldV, newV) -> newV));
-
-        HashMap<String, Property> result = new HashMap<>();
-        result.putAll(properties);
-        result.putAll(choiceProperties);
+    private Map<String, Property> handleChoices(ChoiceSchemaNode choice, Boolean isRpc) {
+        Map<String, Property> result = new HashMap<>();
+        for (ChoiceCaseNode choiceCase : choice.getCases()) {
+            for (DataSchemaNode childNode : choiceCase.getChildNodes()) {
+                if (childNode instanceof ChoiceSchemaNode) {
+                    Map<String, Property> subProperties = handleChoices((ChoiceSchemaNode) childNode, isRpc);
+                    subProperties.forEach((name, property) -> assignCaseMetadata(property, choice, choiceCase));
+                    result.putAll(subProperties);
+                } else {
+                    Pair prop = prop(childNode, isRpc);
+                    assignCaseMetadata(prop.property, choice, choiceCase);
+                    result.put(prop.name, prop.property);
+                }
+            }
+        }
         return result;
     }
 
@@ -356,8 +363,11 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
     private static void assignCaseMetadata(Property property, ChoiceSchemaNode choice, ChoiceCaseNode aCase) {
         String choiceName = choice.getQName().getLocalName();
         String caseName = aCase.getQName().getLocalName();
-
-        ((AbstractProperty) property).setVendorExtension("x-choice", choiceName + ":" + caseName);
+//        ((AbstractProperty) property).setVendorExtension("x-choice", choiceName + ":" + caseName);
+        if (!property.getVendorExtensions().containsKey("x-choice")) {
+            property.getVendorExtensions().put("x-choice", new ArrayList<String>());
+        }
+        ((List<String>) property.getVendorExtensions().get("x-choice")).add(choiceName + ":" + caseName);
     }
 
     /**
@@ -380,6 +390,7 @@ public abstract class AbstractDataObjectBuilder implements DataObjectBuilder {
                 return;
             }
             log.warn("Overriding model {} with node {}", modelName, node.getQName());
+//            swagger.addDefinition(modelName + UUID.randomUUID(), swagger.getDefinitions().get(modelName));
         }
 
         swagger.addDefinition(modelName, model);

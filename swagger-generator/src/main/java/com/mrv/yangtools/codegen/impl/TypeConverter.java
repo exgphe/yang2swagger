@@ -21,10 +21,12 @@ import org.opendaylight.yangtools.yang.model.api.TypeDefinition;
 import org.opendaylight.yangtools.yang.model.api.type.*;
 import org.opendaylight.yangtools.yang.model.util.SchemaContextUtil;
 import org.opendaylight.yangtools.yang.model.util.type.BaseTypes;
+import org.opendaylight.yangtools.yang.parser.stmt.rfc6020.effective.type.LengthConstraintEffectiveImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigInteger;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -37,9 +39,11 @@ public class TypeConverter {
 
     private SchemaContext ctx;
     private DataObjectBuilder dataObjectBuilder;
+    private ModuleUtils moduleUtils;
 
     public TypeConverter(SchemaContext ctx) {
         this.ctx = ctx;
+        this.moduleUtils = new ModuleUtils(ctx);
     }
 
     private static final Logger log = LoggerFactory.getLogger(TypeConverter.class);
@@ -84,9 +88,9 @@ public class TypeConverter {
 
         if (baseType instanceof IntegerTypeDefinition || baseType instanceof UnsignedIntegerTypeDefinition) {
             EnhancedIntegerProperty integer = new EnhancedIntegerProperty();
-            if (BaseTypes.isInt64(baseType) || BaseTypes.isUint64(baseType)) {
+            if (isInt64(baseType) || isUint64(baseType)) {
                 StringProperty longInteger = new StringProperty();
-                if (BaseTypes.isInt64(baseType)) {
+                if (isInt64(baseType)) {
                     longInteger.setVendorExtension("x-type", "int64");
                     longInteger.setPattern("^(0|[1-9][0-9]*|-[1-9][0-9]*)$");
                     IntegerTypeDefinition integerTypeDefinition = ((IntegerTypeDefinition) baseType);
@@ -102,8 +106,7 @@ public class TypeConverter {
                     }
                 }
                 return longInteger;
-            }
-            else
+            } else
 //                if (BaseTypes.isUint32(baseType)) { // TODO BaseTypes.isUint32 has bug
                 integer.setFormat("int64");
 //            }
@@ -113,17 +116,19 @@ public class TypeConverter {
             if (baseType instanceof IntegerTypeDefinition) {
                 IntegerTypeDefinition integerTypeDefinition = ((IntegerTypeDefinition) baseType);
                 if (integerTypeDefinition.getRangeConstraints() != null) {
-                    Long currentMax = null;
-                    Long currentMin = null;
+                    BigInteger currentMax = null;
+                    BigInteger currentMin = null;
                     for (RangeConstraint rangeConstraint : integerTypeDefinition.getRangeConstraints()) {
                         if (rangeConstraint.getMax() != null) {
-                            if (currentMax == null || currentMax < rangeConstraint.getMax().longValue()) {
-                                currentMax = rangeConstraint.getMax().longValue();
+                            BigInteger max = new BigInteger(String.valueOf(rangeConstraint.getMax()));
+                            if (currentMax == null || currentMax.compareTo(max) < 0) {
+                                currentMax = max;
                             }
                         }
                         if (rangeConstraint.getMin() != null) {
-                            if (currentMin == null || currentMin > rangeConstraint.getMin().longValue()) {
-                                currentMin = rangeConstraint.getMin().longValue();
+                            BigInteger min = new BigInteger(String.valueOf(rangeConstraint.getMin()));
+                            if (currentMin == null || currentMin.compareTo(min) > 0) {
+                                currentMin = min;
                             }
                         }
                     }
@@ -140,17 +145,19 @@ public class TypeConverter {
             } else if (baseType instanceof UnsignedIntegerTypeDefinition) {
                 UnsignedIntegerTypeDefinition unsignedIntegerTypeDefinition = ((UnsignedIntegerTypeDefinition) baseType);
                 if (unsignedIntegerTypeDefinition.getRangeConstraints() != null) {
-                    Long currentMax = null;
-                    Long currentMin = null;
+                    BigInteger currentMax = null;
+                    BigInteger currentMin = null;
                     for (RangeConstraint rangeConstraint : unsignedIntegerTypeDefinition.getRangeConstraints()) {
                         if (rangeConstraint.getMax() != null) {
-                            if (currentMax == null || currentMax < rangeConstraint.getMax().longValue()) {
-                                currentMax = rangeConstraint.getMax().longValue();
+                            BigInteger max = new BigInteger(String.valueOf(rangeConstraint.getMax()));
+                            if (currentMax == null || currentMax.compareTo(max) < 0) {
+                                currentMax = max;
                             }
                         }
                         if (rangeConstraint.getMin() != null) {
-                            if (currentMin == null || currentMin > rangeConstraint.getMin().longValue()) {
-                                currentMin = rangeConstraint.getMin().longValue();
+                            BigInteger min = new BigInteger(String.valueOf(rangeConstraint.getMin()));
+                            if (currentMin == null || currentMin.compareTo(min) > 0) {
+                                currentMin = min;
                             }
                         }
                     }
@@ -217,9 +224,10 @@ public class TypeConverter {
             StringProperty binary = new StringProperty();
             binary.setFormat("byte");
             if (binaryType.getLengthConstraints() != null) {
+                List<LengthConstraint> constraints = binaryType.getLengthConstraints().stream().map(c -> new LengthConstraintEffectiveImpl(Math.ceil(c.getMin().longValue() / 3.0) * 4, Math.ceil(c.getMax().longValue() / 3.0) * 4, c.getDescription(), c.getReference(), c.getErrorAppTag(), c.getErrorMessage())).collect(Collectors.toList());
                 Integer currentMax = null;
                 Integer currentMin = null;
-                for (LengthConstraint lengthConstraint : binaryType.getLengthConstraints()) {
+                for (LengthConstraint lengthConstraint : constraints) {
                     if (lengthConstraint.getMax() != null) {
                         if (currentMax == null || currentMax < lengthConstraint.getMax().intValue()) {
                             currentMax = lengthConstraint.getMax().intValue();
@@ -237,8 +245,8 @@ public class TypeConverter {
                 if (currentMin != null) {
                     binary.setMinLength(currentMin);
                 }
-                if (binaryType.getLengthConstraints().size() > 1) {
-                    binary.setVendorExtension("x-length", binaryType.getLengthConstraints());
+                if (constraints.size() > 1) {
+                    binary.setVendorExtension("x-length", constraints);
                 }
             }
             return binary;
@@ -269,8 +277,36 @@ public class TypeConverter {
             empty.setVendorExtension("x-empty", true);
             return empty;
         }
+        if (type instanceof IdentityrefTypeDefinition) {
+            IdentityrefTypeDefinition identityrefTypeDefinition = (IdentityrefTypeDefinition) type;
+            StringProperty identityRefProperty = new StringProperty();
+            String parentNameSpace = moduleUtils.toModuleName(parent.getQName());
+            identityRefProperty.setEnum(identityrefTypeDefinition.getIdentities().stream().flatMap(identity -> identity.getDerivedIdentities().stream().map(derivedIdentity -> moduleUtils.toModuleName(derivedIdentity.getQName()) + ":" + derivedIdentity.getQName().getLocalName())).collect(Collectors.toList()));
+            identityRefProperty.getEnum().addAll(identityrefTypeDefinition.getIdentities().stream().flatMap(identity -> identity.getDerivedIdentities().stream().filter(derivedIdentity -> moduleUtils.toModuleName(derivedIdentity.getQName()).equals(parentNameSpace)).map(derivedIdentity -> derivedIdentity.getQName().getLocalName())).collect(Collectors.toList()));
+            identityRefProperty.setVendorExtension("x-identity", true);
+            return identityRefProperty;
+        }
         return new StringProperty();
     }
+
+    private boolean isInt64(TypeDefinition<?> baseType) {
+        if (baseType == null) return false;
+        Boolean result = BaseTypes.isInt64(baseType);
+        if (!result) {
+            result = isInt64(baseType.getBaseType());
+        }
+        return result;
+    }
+
+    private boolean isUint64(TypeDefinition<?> baseType) {
+        if (baseType == null) return false;
+        Boolean result = BaseTypes.isUint64(baseType);
+        if (!result) {
+            result = isUint64(baseType.getBaseType());
+        }
+        return result;
+    }
+
 
     /**
      * Check if builder is present.
