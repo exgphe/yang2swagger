@@ -71,8 +71,11 @@ public class Main {
 
     public String contentType = "application/yang-data+json";
 
-    @Option(name = "-basepath", usage="")
-    public String basePath = "localhost:1234";
+    @Parameter(names = "-host")
+    public String host = "localhost:1234";
+
+    @Parameter(names = "-basepath")
+    public String basePath = "/restconf";
 
     public enum ElementType {
         DATA, RPC, DATA_AND_RPC;
@@ -138,7 +141,8 @@ public class Main {
                 .format(outputFormat)
                 .consumes("application/yang-data+json").consumes("application/yang-data+xml")
                 .produces("application/yang-data+json").produces("application/yang-data+xml")
-                .host(basePath)
+                .host(host)
+                .basePath(basePath)                
                 .pathHandler(pathHandler)
                 .elements(map(elementType));
 
@@ -163,7 +167,7 @@ public class Main {
         URI.create(basePath);
     }
 
-    private SchemaContext buildSchemaContext(String dir, Predicate<Path> accept)
+    private SchemaContext buildSchemaContext(File dir, Predicate<Path> accept)
             throws ReactorException {
 //        if (dir.contains(File.pathSeparator)) {
 //            return ContextHelper.getFromDir(Arrays.stream(dir.split(File.pathSeparator)).map(s -> FileSystems.getDefault().getPath(s)), accept);
