@@ -115,11 +115,15 @@ public class PathSegment implements Iterable<PathSegment> {
     }
 
     public boolean forList() {
-        return node != null && !node.getKeyDefinition().isEmpty();
+        return isCollection() && !node.getKeyDefinition().isEmpty();
     }
 
     public boolean isReadOnly() {
         return readOnly;
+    }
+
+    public boolean isCollection() {
+        return node != null;
     }
 
     public PathSegment drop() {
@@ -157,8 +161,8 @@ public class PathSegment implements Iterable<PathSegment> {
     }
 
     protected Collection<? extends Parameter> localParameters() {
-        if (localParams == null) {
-            if (node != null) {
+        if(localParams == null) {
+            if(isCollection()) {
                 log.debug("processing parameters from attached node");
                 final Set<String> existingNames = parent.params().stream().map(Parameter::getName).collect(Collectors.toSet());
 

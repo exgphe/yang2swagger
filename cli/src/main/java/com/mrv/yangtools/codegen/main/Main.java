@@ -1,6 +1,7 @@
 package com.mrv.yangtools.codegen.main;
 
 import java.io.*;
+import java.net.URI;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
@@ -29,7 +30,6 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.Parameter;
 
 import com.mrv.yangtools.codegen.SwaggerGenerator;
-import com.mrv.yangtools.common.SchemaBuilder;
 
 public class Main {
 
@@ -70,6 +70,9 @@ public class Main {
     public SwaggerGenerator.Strategy strategy = SwaggerGenerator.Strategy.unpacking;
 
     public String contentType = "application/yang-data+json";
+
+    @Option(name = "-basepath", usage="")
+    public String basePath = "localhost:1234";
 
     public enum ElementType {
         DATA, RPC, DATA_AND_RPC;
@@ -128,13 +131,14 @@ public class Main {
         if (useNamespaces)
             pathHandler = pathHandler.useModuleName();
 
+        validate(basePath);
+
         final SwaggerGenerator generator = new SwaggerGenerator(context, toGenerate, strategy)
                 .version(apiVersion)
                 .format(outputFormat)
                 .consumes("application/yang-data+json").consumes("application/yang-data+xml")
                 .produces("application/yang-data+json").produces("application/yang-data+xml")
-                .host("localhost:1234")
-                .basePath("/restconf")
+                .host(basePath)
                 .pathHandler(pathHandler)
                 .elements(map(elementType));
 
@@ -155,7 +159,11 @@ public class Main {
         generator.generate(new OutputStreamWriter(out, StandardCharsets.UTF_8));
     }
 
-    private SchemaContext buildSchemaContext(File dir, Predicate<Path> accept)
+    private void validate(String basePath) {
+        URI.create(basePath);
+    }
+
+    private SchemaContext buildSchemaContext(String dir, Predicate<Path> accept)
             throws ReactorException {
 //        if (dir.contains(File.pathSeparator)) {
 //            return ContextHelper.getFromDir(Arrays.stream(dir.split(File.pathSeparator)).map(s -> FileSystems.getDefault().getPath(s)), accept);
@@ -169,10 +177,10 @@ public class Main {
             case DATA:
                 return new SwaggerGenerator.Elements[]{SwaggerGenerator.Elements.DATA};
             case RPC:
-                return new SwaggerGenerator.Elements[]{SwaggerGenerator.Elements.RCP};
+                return new SwaggerGenerator.Elements[]{SwaggerGenerator.Elements.RPC};
             case DATA_AND_RPC:
             default:
-                return new SwaggerGenerator.Elements[]{SwaggerGenerator.Elements.DATA, SwaggerGenerator.Elements.RCP};
+                return new SwaggerGenerator.Elements[]{SwaggerGenerator.Elements.DATA, SwaggerGenerator.Elements.RPC};
         }
 
     }
