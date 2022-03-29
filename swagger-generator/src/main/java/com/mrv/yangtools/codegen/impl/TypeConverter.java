@@ -279,7 +279,9 @@ public class TypeConverter {
         if (type instanceof IdentityrefTypeDefinition) {
             IdentityrefTypeDefinition identityrefTypeDefinition = (IdentityrefTypeDefinition) type;
             StringProperty identityRefProperty = new StringProperty();
+            String parentNameSpace = moduleUtils.toModuleName(parent.getQName());
             identityRefProperty.setEnum(identityrefTypeDefinition.getIdentities().stream().flatMap(identity -> identity.getDerivedIdentities().stream().map(derivedIdentity -> moduleUtils.toModuleName(derivedIdentity.getQName()) + ":" + derivedIdentity.getQName().getLocalName())).collect(Collectors.toList()));
+            identityRefProperty.getEnum().addAll(identityrefTypeDefinition.getIdentities().stream().flatMap(identity -> identity.getDerivedIdentities().stream().filter(derivedIdentity -> moduleUtils.toModuleName(derivedIdentity.getQName()).equals(parentNameSpace)).map(derivedIdentity -> derivedIdentity.getQName().getLocalName())).collect(Collectors.toList()));
             identityRefProperty.setVendorExtension("x-identity", true);
             return identityRefProperty;
         }
